@@ -4,9 +4,26 @@
 
 This starter template provides everything you need to build applications with the Arkiv SDK for Python. No complex setup required—just clone, open, and run.
 
+## Table of Contents
+
+- [What is Arkiv?](#what-is-arkiv)
+- [Quick Start](#quick-start)
+- [Understanding Entities](#understanding-entities)
+- [Examples](#examples)
+- [Working with AI Assistants](#working-with-ai-assistants)
+- [Development Guide](#development-guide)
+  - [Project Structure](#project-structure)
+  - [Naming Conventions](#naming-conventions)
+  - [Common Tasks](#common-tasks)
+  - [Troubleshooting](#troubleshooting)
+- [Deploying to Production](#deploying-to-production)
+- [Resources](#resources)
+
+---
+
 ## What is Arkiv?
 
-Arkiv is Web3 database that solves the Web3 data trilemma.
+Arkiv is a Web3 database that solves the Web3 data trilemma.
 Store, query, and manage data on-chain with the simplicity of a traditional database, but with blockchain guarantees.
 
 **Key Features:**
@@ -15,21 +32,11 @@ Store, query, and manage data on-chain with the simplicity of a traditional data
 - ⚡ **Real-time Events** - Subscribe to data changes as they happen
 - 🔗 **Web3 Compatible** - Just a simple extension of the web3.py library
 
-## Prerequisites
-
-You should already have:
+**Prerequisites:**
 - ✅ Git
 - ✅ Docker
 - ✅ VS Code
 - ✅ GitHub Copilot (optional but recommended)
-
-**Python Version:** This template uses **Python 3.12** for optimal compatibility. The Arkiv SDK supports Python 3.10-3.14, but we recommend 3.12 because:
-- **Broad package compatibility** - Most Python packages have pre-built wheels
-- **Stable and mature** - Well-tested in production environments  
-- **Modern features** - Includes recent Python improvements
-- **Long-term support** - Maintained until October 2028
-
-If you need a different Python version (3.10, 3.11, 3.13, or 3.14), edit `.python-version` and rebuild the container.
 
 ## Quick Start
 
@@ -46,7 +53,7 @@ code .
 When VS Code prompts you, click **"Reopen in Container"** (or use Command Palette: `Dev Containers: Reopen in Container`)
 
 The dev container will:
-- Install Python 3.12
+- Install Python 3.12 (supports 3.10-3.14, optimized for broad compatibility)
 - Set up Docker-in-Docker for local Arkiv nodes
 - Install the Arkiv SDK and dependencies
 - Configure your Python environment
@@ -72,25 +79,6 @@ You should see output like:
 ```
 
 **That's it!** You're now running Arkiv locally and performing CRUD operations on-chain.
-
-## ⚠️ Naming Convention Quick Reference
-
-**Before you start coding, understand these naming conventions:**
-
-| Context | Convention | Examples |
-|---------|-----------|----------|
-| **Python SDK** | snake_case | `entity_key`, `content_type`, `from_block`, `expires_in` |
-| **Query Syntax** | snake_case with `$` | `$owner`, `$content_type`, `$created_at` |
-| **Contract Events** | camelCase | `entityKey`, `ownerAddress`, `expirationBlock` |
-| **Entity Attributes** | snake_case | `entity.key`, `entity.payload`, `entity.expires_at_block` |
-
-**Common mistakes to avoid:**
-- ❌ `$contentType` → ✅ `$content_type` (in queries)
-- ❌ `entity.id` → ✅ `entity.key` (attribute changed)
-- ❌ `entity.content` → ✅ `entity.payload` (attribute changed)
-- ❌ `event['args']['entity_key']` → ✅ `event['args']['entityKey']` (events are camelCase)
-
-See [API_REFERENCE.md](API_REFERENCE.md#️-important-naming-conventions) for detailed examples.
 
 ## Understanding Entities
 
@@ -202,9 +190,9 @@ How long the entity should persist on-chain before automatic expiration.
 
 This design gives you the flexibility of a document database with the immutability and transparency of blockchain storage.
 
-## Examples Overview
+## Examples
 
-The `examples/` directory contains 4 progressive tutorials:
+The template includes 4 progressive tutorials, each building on the previous:
 
 ### Example 1: Basic CRUD Operations (5 min)
 **File:** `01_basic_crud.py`
@@ -261,50 +249,7 @@ Advanced usage:
 uv run python -m arkiv_starter.04_web3_integration
 ```
 
-## Project Structure
 
-```
-arkiv-python-starter/
-├── .devcontainer/
-│   ├── devcontainer.json       # Dev container configuration
-│   └── post-create.sh          # Setup script
-├── .vscode/
-│   └── settings.json           # Python/Pylance settings
-├── src/
-│   └── arkiv_starter/
-│       ├── 01_basic_crud.py        # CRUD operations
-│       ├── 02_queries.py           # Filtering and sorting
-│       ├── 03_events.py            # Event listening
-│       └── 04_web3_integration.py  # Web3 compatibility
-├── tests/
-│   ├── conftest.py             # Test configuration
-│   ├── test_01_basic_crud.py   # CRUD tests
-│   ├── test_02_queries.py      # Query tests
-│   └── test_utilities.py       # Utility function tests
-├── .gitignore
-├── API_REFERENCE.md            # Complete API documentation
-├── README.md                   # This file
-├── pyproject.toml              # Project dependencies
-└── uv.lock                     # Locked dependencies (auto-generated)
-```
-
-## Project Structure
-
-This template follows the **src-layout** pattern, which is the modern Python standard:
-
-- **`src/arkiv_starter/`** - Your application code goes here (currently contains numbered examples)
-- **`tests/`** - Test files that mirror the src structure
-- **`.devcontainer/`** - Dev container configuration for consistent development
-- **`.vscode/`** - VS Code settings optimized for Python
-
-**Why src-layout?**
-- ✅ Prevents accidental imports of uninstalled code
-- ✅ Matches the structure of published Python packages
-- ✅ Clear separation between source code and tooling
-- ✅ Standard practice in modern Python projects
-
-**To start building your app:**
-Replace the numbered example files with your own modules, or keep them as reference and create new files alongside them.
 
 ## How It Works
 
@@ -316,71 +261,182 @@ Each example:
 
 All examples are self-contained and can run independently as modules: `uv run python -m arkiv_starter.01_basic_crud`
 
-## Common Pitfalls for AI Agents
+---
 
-When using AI assistants like GitHub Copilot or Claude to work with this codebase:
+## Working with AI Assistants
 
-### ❌ Wrong Naming Convention
+This template is designed to work seamlessly with AI coding assistants like **GitHub Copilot**, **Claude**, and **ChatGPT**.
+
+### 🤖 For AI Agents: Critical Context
+
+If you're an AI assistant helping with this codebase, prioritize these facts:
+
+**1. Naming Conventions (Most Common Mistake)**
+
+| Context | Convention | Examples |
+|---------|-----------|----------|
+| **Python SDK** | snake_case | `entity_key`, `content_type`, `from_block`, `expires_in` |
+| **Query Syntax** | snake_case with `$` | `$owner`, `$content_type`, `$created_at` |
+| **Contract Events** | camelCase | `entityKey`, `ownerAddress`, `expirationBlock` |
+| **Entity Attributes** | snake_case | `entity.key`, `entity.payload`, `entity.expires_at_block` |
+
+**2. API Return Values**
 ```python
-# ❌ DON'T: Mixing camelCase in Python code
-result = client.arkiv.query_entities_page(
-    f'$owner = "{addr}" AND $contentType = "text/plain"'  # Wrong!
-)
-entity_key = event['args']['entity_key']  # Wrong!
+# create_entity returns a TUPLE:
+entity_key, receipt = client.arkiv.create_entity(...)
 
-# ✅ DO: Use correct conventions
-result = client.arkiv.query_entities_page(
-    f'$owner = "{addr}" AND $content_type = "text/plain"'  # Correct: snake_case
-)
-entity_key = hex(event['args']['entityKey'])  # Correct: camelCase in events
+# update/delete return just receipt:
+receipt = client.arkiv.update_entity(...)
+receipt = client.arkiv.delete_entity(...)
 ```
 
-### ❌ Wrong Return Value Unpacking
+**3. Current API (Not Old Versions)**
 ```python
-# ❌ DON'T: Old API style
-tx_hash = client.arkiv.create_entity(...)  # Returns tuple now!
-receipt = client.eth.wait_for_transaction_receipt(tx_hash)  # Won't work
+# ✅ CORRECT (current API)
+from arkiv import Arkiv, NamedAccount
+from arkiv.provider import ProviderBuilder  # Singular: provider
 
-# ✅ DO: Unpack correctly
-entity_key, receipt = client.arkiv.create_entity(...)  # Returns (key, receipt)
-receipt = client.arkiv.update_entity(...)  # Returns just receipt
+account = NamedAccount.create("name")  # Not Account.create()
+entity.key      # Not entity.id
+entity.payload  # Not entity.content
+event['args']['entityKey']  # camelCase in events
 ```
 
-### ❌ Wrong Entity Attributes
-```python
-# ❌ DON'T: Old attribute names
-print(entity.id)  # Wrong attribute name
-print(entity.content)  # Wrong attribute name
+**4. Module Structure**
+- Examples live in `src/arkiv_starter/` (not `examples/`)
+- Run as modules: `uv run python -m arkiv_starter.01_basic_crud`
+- Python 3.12 recommended (supports 3.10-3.14)
 
-# ✅ DO: Current attribute names
-print(entity.key)  # Correct
-print(entity.payload)  # Correct
+**Common AI Mistakes to Avoid:**
+
+❌ **Wrong:**
+```python
+# Mixing camelCase in queries
+f'$contentType = "text/plain"'  # WRONG
+event['args']['entity_key']     # WRONG
+entity.id                        # WRONG
 ```
 
-**When in doubt, check [API_REFERENCE.md](API_REFERENCE.md) for the authoritative API documentation.**
+✅ **Correct:**
+```python
+# Use snake_case in queries
+f'$content_type = "text/plain"'  # CORRECT
+hex(event['args']['entityKey'])  # CORRECT (camelCase in events)
+entity.key                        # CORRECT
+```
 
-## Using GitHub Copilot
+**When in doubt, check [API_REFERENCE.md](API_REFERENCE.md) first.**
 
-This template is optimized for GitHub Copilot:
+### 💬 Using GitHub Copilot
 
-- 📝 **Well-commented examples** - Copilot learns from clear explanations
-- 🎯 **Focused code patterns** - Each example teaches specific concepts
-- 💬 **Natural language prompts** - Ask Copilot to modify examples
+This template is optimized for interactive AI assistance:
+
+- 📝 **Well-commented examples** - Clear patterns for learning
+- 🎯 **Focused code** - Each example teaches specific concepts
+- 💬 **Natural language prompts** - Ask Copilot to help
 
 **Try asking Copilot:**
-- "Create an entity that stores JSON data using the correct snake_case convention"
+- "Create an entity that stores JSON data"
 - "Query entities by owner and content_type"
 - "Listen to ArkivEntityCreated events and extract the entityKey"
+- "Update an entity's payload and wait for confirmation"
 
-## Common Tasks
+---
 
-### Install Additional Dependencies
+## Development Guide
+
+### Project Structure
+
+This template follows the **src-layout** pattern (modern Python standard):
+
+```
+arkiv-python-starter/
+├── src/
+│   └── arkiv_starter/          # Your application code
+│       ├── 01_basic_crud.py
+│       ├── 02_queries.py
+│       ├── 03_events.py
+│       └── 04_web3_integration.py
+├── tests/                      # Test files
+│   ├── conftest.py
+│   ├── test_01_basic_crud.py
+│   └── test_02_queries.py
+├── .devcontainer/              # Dev container config
+├── .vscode/                    # VS Code settings
+├── pyproject.toml              # Dependencies & tools
+└── .python-version             # Python version (3.12)
+```
+
+**Why src-layout?**
+- ✅ Prevents accidental imports of uninstalled code
+- ✅ Matches published Python package structure
+- ✅ Clear separation between source and tooling
+- ✅ Industry standard for modern Python projects
+
+**To build your app:** Replace or extend the numbered examples with your own modules.
+
+### Naming Conventions
+
+Arkiv uses **three different naming conventions** depending on context:
+
+#### Python SDK → snake_case
+```python
+entity_key, receipt = client.arkiv.create_entity(
+    payload=b"data",
+    content_type="text/plain",
+    expires_in=3600,
+    attributes={"user_id": "123"}
+)
+```
+
+#### Query Syntax → snake_case with `$`
+```python
+# System attributes with $ prefix
+entities = list(client.arkiv.query_entities(
+    f'$owner = "{address}" AND $content_type = "application/json"'
+))
+
+# User attributes without $ prefix
+entities = list(client.arkiv.query_entities(
+    'type = "user_profile" AND status = "active"'
+))
+```
+
+#### Contract Events → camelCase
+```python
+event_filter = arkiv_contract.events.ArkivEntityCreated.create_filter(from_block="latest")
+for event in event_filter.get_all_entries():
+    entity_key = hex(event['args']['entityKey'])      # camelCase!
+    owner = event['args']['ownerAddress']             # camelCase!
+    expiration = event['args']['expirationBlock']     # camelCase!
+```
+
+#### Entity Attributes → snake_case
+```python
+print(entity.key)              # Not entity.id
+print(entity.payload)          # Not entity.content
+print(entity.owner)
+print(entity.content_type)
+print(entity.expires_at_block)
+print(entity.created_at_block)
+```
+
+**Why three conventions?**
+- Python SDK follows Python naming standards (PEP 8)
+- Query syntax prioritizes readability and SQL-like familiarity
+- Contract events follow Solidity conventions (cannot be changed)
+
+See [API_REFERENCE.md](API_REFERENCE.md#️-important-naming-conventions) for complete details.
+
+### Common Tasks
+
+#### Install Additional Dependencies
 
 ```bash
 uv add <package-name>
 ```
 
-### Run Python REPL with Arkiv
+#### Run Python REPL with Arkiv
 
 ```bash
 uv run ipython
@@ -393,27 +449,82 @@ from arkiv.node import ArkivNode
 # ... experiment interactively
 ```
 
-### Check Arkiv SDK Version
+#### Check Arkiv SDK Version
 
 ```bash
 uv run python -c "import arkiv; print(arkiv.__version__)"
 ```
 
-### Run Tests
+#### Run Tests
 
-The starter includes automated tests you can run:
+The starter includes automated tests:
 
 ```bash
 uv run pytest
 ```
 
-This runs tests that verify:
+This verifies:
 - ✅ Basic CRUD operations work correctly
 - ✅ Query functionality performs as expected
 - ✅ Utility functions produce correct results
 - ✅ Field masks work for selective retrieval
 
 Tests use a local Arkiv node and run automatically - no configuration needed!
+
+#### Change Python Version
+
+The template uses Python 3.12 by default (recommended for compatibility). To use a different version:
+
+1. Edit `.python-version` (e.g., change to `3.11`, `3.13`, or `3.14`)
+2. Rebuild container: Command Palette → `Dev Containers: Rebuild Container`
+3. UV will automatically install the specified Python version
+
+**Why Python 3.12?**
+- Broad package compatibility (most wheels available)
+- Stable and well-tested in production
+- Long-term support until October 2028
+- Modern features without bleeding-edge risks
+
+### Troubleshooting
+
+#### Dev Container Won't Start
+
+**Problem:** Docker issues or container build failures
+
+**Solution:**
+- Ensure Docker is running: `docker ps`
+- Try rebuilding: Command Palette → `Dev Containers: Rebuild Container`
+
+#### Import Errors in IDE
+
+**Problem:** Red import lines or `ModuleNotFoundError`
+
+**Solution:**
+```bash
+uv sync
+```
+
+Then: `Ctrl+Shift+P` → `Python: Select Interpreter` → choose `.venv`
+
+#### Node Connection Errors
+
+**Problem:** Can't connect to Arkiv node
+
+**Solution:**
+- Check Docker: `docker ps`
+- Examples start nodes automatically—wait for "Node running" message
+- First run downloads Docker images (one-time delay)
+
+#### Examples Run Slowly
+
+**Problem:** Operations take a long time
+
+**Solution:**
+- First run downloads images (one-time)
+- Subsequent runs are faster
+- Local nodes are slower than production (expected)
+
+---
 
 ## Deploying to Production
 
@@ -492,73 +603,26 @@ To use Mendoza testnet, you need test tokens:
    print(f"Balance: {balance / 10**18} ETH")
    ```
 
+---
+
+- 🐍 [Arkiv Getting Started](hhttps://arkiv.network/getting-started/python)
+- 🐍 [Arkiv SDK for Python on Github](https://github.com/Arkiv-Network/arkiv-sdk-python)
+- 📖 [API_REFERENCE.md](API_REFERENCE.md) - Local API reference with examples
+- 💬 [Discord Community](https://discord.gg/arkiv) - Get help and share projects
+- 🐦 [Twitter/X](https://twitter.com/ArkivNetwork) - Latest updates and announcements
+
 ## Next Steps
 
-Once you've run all examples:
+Once you've completed the examples:
 
-1. **Modify the examples** - Change payloads, filters, or operations
-2. **Build your application** - Use these patterns in your own code
-3. **Deploy to testnet** - Follow the production guide above
-4. **Read the API reference** - See [API_REFERENCE.md](API_REFERENCE.md) for complete documentation
-5. **Join the community** - Get help and share your projects on Discord
-
-## Troubleshooting
-
-### Dev Container Won't Start
-
-**Problem:** Docker issues or container build failures
-
-**Solution:**
-- Ensure Docker is running
-- Try: `Dev Containers: Rebuild Container` from Command Palette
-
-### Import Errors
-
-**Problem:** `ModuleNotFoundError: No module named 'arkiv'` or red import lines in IDE
-
-**Solution:**
-```bash
-uv sync
-```
-
-Then in VS Code, press `Ctrl+Shift+P` and select "Python: Select Interpreter" → choose `.venv`
-
-### Python Version Issues
-
-**Problem:** Need a different Python version
-
-**Solution:**
-1. Edit `.python-version` (e.g., change `3.12` to `3.11` or `3.13`)
-2. Rebuild container: `Dev Containers: Rebuild Container`
-3. Arkiv SDK supports Python 3.10-3.14
-
-### Node Connection Errors
-
-**Problem:** Can't connect to Arkiv node
-
-**Solution:**
-- Check Docker is running: `docker ps`
-- The examples start nodes automatically—wait for the "Node running" message
-
-### Examples Run Slowly
-
-**Problem:** Operations take a long time
-
-**Solution:**
-- First run downloads Docker images (one-time delay)
-- Subsequent runs are much faster
-- Local nodes are slower than production—this is expected
+1. **Experiment** - Modify examples to understand the API
+2. **Build** - Create your own application using these patterns
+3. **Deploy** - Move to Mendoza testnet when ready
+4. **Share** - Join Discord and show the community what you've built
 
 ## Contributing
 
 Found a bug or have a suggestion? Please open an issue or submit a PR!
-
-## Resources
-
-- 📚 [Arkiv Documentation](https://docs.arkiv.network)
-- 🐍 [Python SDK Reference](https://github.com/Arkiv-Network/arkiv-sdk-python)
-- 💬 [Discord Community](https://discord.gg/arkiv)
-- 🐦 [Twitter/X](https://twitter.com/ArkivNetwork)
 
 ## License
 
