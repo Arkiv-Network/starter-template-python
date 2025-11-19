@@ -23,6 +23,14 @@ You should already have:
 - ✅ VS Code
 - ✅ GitHub Copilot (optional but recommended)
 
+**Python Version:** This template uses **Python 3.12** for optimal compatibility. The Arkiv SDK supports Python 3.10-3.14, but we recommend 3.12 because:
+- **Broad package compatibility** - Most Python packages have pre-built wheels
+- **Stable and mature** - Well-tested in production environments  
+- **Modern features** - Includes recent Python improvements
+- **Long-term support** - Maintained until October 2028
+
+If you need a different Python version (3.10, 3.11, 3.13, or 3.14), edit `.python-version` and rebuild the container.
+
 ## Quick Start
 
 ### 1. Clone and Open
@@ -48,7 +56,7 @@ The dev container will:
 ### 3. Run Your First Example
 
 ```bash
-uv run python examples/01_basic_crud.py
+uv run python -m arkiv_starter.01_basic_crud
 ```
 
 You should see output like:
@@ -209,7 +217,7 @@ Learn the fundamentals:
 
 **Run it:**
 ```bash
-python examples/01_basic_crud.py
+uv run python -m arkiv_starter.01_basic_crud
 ```
 
 ### Example 2: Querying Entities (5 min)
@@ -223,7 +231,7 @@ Master data retrieval:
 
 **Run it:**
 ```bash
-python examples/02_queries.py
+uv run python -m arkiv_starter.02_queries
 ```
 
 ### Example 3: Blockchain Events (10 min)
@@ -236,7 +244,7 @@ Real-time data monitoring:
 
 **Run it:**
 ```bash
-python examples/03_events.py
+uv run python -m arkiv_starter.03_events
 ```
 
 ### Example 4: Web3 Integration (10 min)
@@ -250,7 +258,7 @@ Advanced usage:
 
 **Run it:**
 ```bash
-python examples/04_web3_integration.py
+uv run python -m arkiv_starter.04_web3_integration
 ```
 
 ## Project Structure
@@ -262,11 +270,12 @@ arkiv-python-starter/
 │   └── post-create.sh          # Setup script
 ├── .vscode/
 │   └── settings.json           # Python/Pylance settings
-├── examples/
-│   ├── 01_basic_crud.py        # CRUD operations
-│   ├── 02_queries.py           # Filtering and sorting
-│   ├── 03_events.py            # Event listening
-│   └── 04_web3_integration.py  # Web3 compatibility
+├── src/
+│   └── arkiv_starter/
+│       ├── 01_basic_crud.py        # CRUD operations
+│       ├── 02_queries.py           # Filtering and sorting
+│       ├── 03_events.py            # Event listening
+│       └── 04_web3_integration.py  # Web3 compatibility
 ├── tests/
 │   ├── conftest.py             # Test configuration
 │   ├── test_01_basic_crud.py   # CRUD tests
@@ -279,6 +288,24 @@ arkiv-python-starter/
 └── uv.lock                     # Locked dependencies (auto-generated)
 ```
 
+## Project Structure
+
+This template follows the **src-layout** pattern, which is the modern Python standard:
+
+- **`src/arkiv_starter/`** - Your application code goes here (currently contains numbered examples)
+- **`tests/`** - Test files that mirror the src structure
+- **`.devcontainer/`** - Dev container configuration for consistent development
+- **`.vscode/`** - VS Code settings optimized for Python
+
+**Why src-layout?**
+- ✅ Prevents accidental imports of uninstalled code
+- ✅ Matches the structure of published Python packages
+- ✅ Clear separation between source code and tooling
+- ✅ Standard practice in modern Python projects
+
+**To start building your app:**
+Replace the numbered example files with your own modules, or keep them as reference and create new files alongside them.
+
 ## How It Works
 
 Each example:
@@ -287,7 +314,7 @@ Each example:
 3. **Demonstrates specific features** - Focused, runnable code
 4. **Cleans up automatically** - Stops the node when done
 
-All examples are self-contained and can run independently.
+All examples are self-contained and can run independently as modules: `uv run python -m arkiv_starter.01_basic_crud`
 
 ## Common Pitfalls for AI Agents
 
@@ -487,12 +514,23 @@ Once you've run all examples:
 
 ### Import Errors
 
-**Problem:** `ModuleNotFoundError: No module named 'arkiv'`
+**Problem:** `ModuleNotFoundError: No module named 'arkiv'` or red import lines in IDE
 
 **Solution:**
 ```bash
 uv sync
 ```
+
+Then in VS Code, press `Ctrl+Shift+P` and select "Python: Select Interpreter" → choose `.venv`
+
+### Python Version Issues
+
+**Problem:** Need a different Python version
+
+**Solution:**
+1. Edit `.python-version` (e.g., change `3.12` to `3.11` or `3.13`)
+2. Rebuild container: `Dev Containers: Rebuild Container`
+3. Arkiv SDK supports Python 3.10-3.14
 
 ### Node Connection Errors
 
