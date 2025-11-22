@@ -18,6 +18,7 @@ packages = ["src/arkiv_starter"]
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "pytest-xdist>=3.0.0",
 ]
 
 [tool.pytest.ini_options]

@@ -1,6 +1,6 @@
-# Arkiv Python Starter
+# Arkiv - The Web3 Database - Python Starter
 
-**Get started with Arkiv in under 2 minutes!** 🚀
+**Get started with Arkiv in under 5 minutes!** 🚀
 
 This starter template provides everything you need to build applications with the Arkiv SDK for Python. No complex setup required—just clone, open, and run.
 
@@ -32,13 +32,13 @@ Store, query, and manage data on-chain with the simplicity of a traditional data
 - ⚡ **Real-time Events** - Subscribe to data changes as they happen
 - 🔗 **Web3 Compatible** - Just a simple extension of the web3.py library
 
-**Prerequisites:**
-- ✅ Git
-- ✅ Docker
-- ✅ VS Code
-- ✅ GitHub Copilot (optional but recommended)
-
 ## Quick Start
+
+**Before you begin, make sure you have:**
+- Git
+- Docker (running)
+- VS Code with Dev Containers extension
+- GitHub Copilot (optional, but recommended for learning)
 
 ### 1. Clone and Open
 
@@ -93,7 +93,6 @@ Every entity has three core components:
 The actual data you want to store on-chain.
 
 - **Type:** Raw bytes (`bytes` in Python)
-- **Size:** Up to approx 100KB per entity
 - **Format:** Can be anything—text, JSON, binary data, serialized objects
 - **Example:**
   ```python
@@ -190,11 +189,58 @@ How long the entity should persist on-chain before automatic expiration.
 
 This design gives you the flexibility of a document database with the immutability and transparency of blockchain storage.
 
+### Transaction Size Limits
+
+Arkiv operations are blockchain transactions, and the **maximum transaction size** is determined by the underlying blockchain network (currently around **120KB** for the entire transaction).
+
+This limit applies to the **complete transaction data**, which includes:
+- Entity payload(s)
+- All entity attributes (both system and custom)
+- Transaction metadata (signatures, gas data, etc.)
+- Multiple entities if you're creating/updating several in one transaction
+
+**Practical guidelines:**
+- Single entity with large payload: ~90KB payload is safe (leaves room for attributes and metadata)
+- Multiple entities in one transaction: Total size of all payloads + attributes must fit within limit
+- Rich attributes: Many custom attributes reduce available space for payload
+- Batch operations: Consider transaction size when batching multiple entity modifications
+
+**Example:**
+```python
+# This is fine - single entity with reasonable payload
+entity_key, receipt = client.arkiv.create_entity(
+    payload=json.dumps({"data": "..." * 1000}).encode(),  # ~80KB
+    attributes={"type": "large_document"}
+)
+
+# This may fail - total size exceeds transaction limit
+# (payload + attributes + metadata > 100KB)
+large_payload = b"x" * 95000  # 95KB payload
+many_attributes = {f"attr_{i}": f"value_{i}" for i in range(1000)}
+entity_key, receipt = client.arkiv.create_entity(
+    payload=large_payload,
+    attributes=many_attributes  # Too much data!
+)
+```
+
 ## Examples
 
 The template includes 4 progressive tutorials, each building on the previous:
 
-### Example 1: Basic CRUD Operations (5 min)
+1. Basic Arkiv CRUD operations
+2. Querying entities
+3. Real-time entity events
+4. Web3 integration
+
+Each example:
+- Starts a local Arkiv node, running in a container without external dependencies
+- Creates and funds a test account
+- Demonstrates specific features
+- Cleans up automatically and stops the local node when done
+
+All examples are self-contained and can run independently as modules: `uv run python -m arkiv_starter.01_basic_crud`
+
+### Example 1: Arkiv CRUD Operations (5 min)
 **File:** `01_basic_crud.py`
 
 Learn the fundamentals:
@@ -222,7 +268,7 @@ Master data retrieval:
 uv run python -m arkiv_starter.02_queries
 ```
 
-### Example 3: Blockchain Events (10 min)
+### Example 3: Real-Time Events (10 min)
 **File:** `03_events.py`
 
 Real-time data monitoring:
@@ -248,18 +294,6 @@ Advanced usage:
 ```bash
 uv run python -m arkiv_starter.04_web3_integration
 ```
-
-
-
-## How It Works
-
-Each example:
-1. **Starts a local Arkiv node** - Runs in Docker, no external dependencies
-2. **Creates and funds a test account** - Ready to transact immediately
-3. **Demonstrates specific features** - Focused, runnable code
-4. **Cleans up automatically** - Stops the node when done
-
-All examples are self-contained and can run independently as modules: `uv run python -m arkiv_starter.01_basic_crud`
 
 ---
 
@@ -461,6 +495,12 @@ The starter includes automated tests:
 
 ```bash
 uv run pytest
+```
+
+For faster parallel execution:
+
+```bash
+uv run pytest -n auto
 ```
 
 This verifies:
