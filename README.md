@@ -40,11 +40,23 @@ Store, query, and manage data on-chain with the simplicity of a traditional data
 - VS Code with Dev Containers extension
 - GitHub Copilot (optional, but recommended for learning)
 
-### 1. Clone and Open
+### 1. Create Your Project from Template
 
+**Option A: Use GitHub's "Use this template" button**
+1. Click the green **"Use this template"** button at the top of this repository
+2. Choose "Create a new repository"
+3. Give your project a name and click "Create repository"
+4. Clone your new repository:
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/YOUR-REPO-NAME
+   cd YOUR-REPO-NAME
+   code .
+   ```
+
+**Option B: Clone directly (for quick testing)**
 ```bash
-git clone <your-repo-url>
-cd arkiv-python-starter
+git clone https://github.com/Arkiv-Network/starter-template-python
+cd starter-template-python
 code .
 ```
 
@@ -113,8 +125,8 @@ Descriptive information about the entity that enables querying and filtering.
 
 Arkiv supports two types of attributes:
 
-##### Arkiv-Controlled Attributes (System)
-These are automatically managed by Arkiv and prefixed with `$` in queries:
+##### System Attributes
+System attributes are automatically managed by Arkiv and prefixed with `$` in queries:
 
 - **`$key`:** Unique entity identifier assigned on creation (automatically set)
 - **`$owner`:** Ethereum address of the entity creator (automatically set)
@@ -126,8 +138,8 @@ These are automatically managed by Arkiv and prefixed with `$` in queries:
 
 You **cannot** create custom attributes with the `$` prefix—these are reserved for Arkiv's internal use.
 
-##### User-Controlled Attributes (Custom)
-These are defined by your application and enable domain-specific queries:
+##### Custom Attributes
+Custom attributes are user defined attributes that support by your specific application and enable use case specific queries:
 
 - **No `$` prefix** - Use any name without the dollar sign
 - **Examples:** `type`, `category`, `status`, `userId`, `priority`, etc.
@@ -135,24 +147,24 @@ These are defined by your application and enable domain-specific queries:
 
 **Example:**
 ```python
-# Creating an entity with custom attributes (Python SDK uses snake_case)
+# Creating an entity with custom attributes 
 entity_key, receipt = client.arkiv.create_entity(
-    payload=b"User profile data",
-    content_type="application/json",  # Python parameter: snake_case
-    expires_in=86400,
+    payload = b"User profile data",
+    content_type = "application/json",
+    expires_in = client.arkiv.to_seconds(days=3),
     attributes={
-        "type": "user_profile",      # Custom attribute
-        "userId": "alice123",         # Custom attribute
-        "status": "active"            # Custom attribute
+        "type": "user_profile", # Custom attribute
+        "userId": "alice123",   # Custom attribute
+        "status": "active".     # Custom attribute
     }
 )
-
+ 
 # Querying by Arkiv-controlled attributes (query syntax uses $content_type)
 entities = list(client.arkiv.query_entities(
     f'$owner = "0x1234..." AND $content_type = "application/json"'  # Query: snake_case with $
 ))
 
-# Querying by user-controlled attributes
+# Querying by custom attributes
 entities = list(client.arkiv.query_entities(
     'type = "user_profile" AND status = "active"'
 ))
@@ -167,14 +179,15 @@ How long the entity should persist on-chain before automatic expiration.
 - **Default:** No default, needs to be set explicitly by user
 - **Example:**
   ```python
+  from arkiv import to_seconds # Arkiv time utility
+
   # Short-lived data (1 hour)
-  client.arkiv.create_entity(payload=data, expires_in=client.arkiv.to_seconds(hours=1))
+  client.arkiv.create_entity(payload=data, expires_in=to_seconds(hours=1))
 
   # Longer storage (2 months)
-  client.arkiv.create_entity(payload=data, expires_in=client.arkiv.to_seconds(days=60))
+  client.arkiv.create_entity(payload=data, expires_in=to_seconds(days=60))
 
-  # Using time utilities
-  from arkiv import to_seconds
+  # Combine time units
   client.arkiv.create_entity(
       payload=data,
       expires_in=to_seconds(hours=2, minutes=30)  # 2.5 hours
