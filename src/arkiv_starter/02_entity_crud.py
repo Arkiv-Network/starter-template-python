@@ -1,5 +1,5 @@
 """
-Example 2: Basic CRUD Operations with Arkiv
+Example 2: Entity CRUD Operations
 
 This example demonstrates:
 - Creating entities (storing data on-chain)
@@ -11,7 +11,7 @@ This example demonstrates:
 
 Note: For client initialization patterns, see 01_clients.py
 
-Run this example: uv run python -m arkiv_starter.02_basic_crud
+Run this example: uv run python -m arkiv_starter.02_entity_crud
 """
 
 from arkiv import Arkiv
@@ -30,7 +30,8 @@ entity_key, receipt = client.arkiv.create_entity(
 )
 print(f"✅ Entity created!")
 print(f"   Entity Key: {entity_key}")
-print(f"   Block: {receipt.block_number}\n")
+print(f"   Block: {receipt.block_number}")
+print(f"   Exists: {client.arkiv.entity_exists(entity_key)}\n")
 
 print("📖 Step 2: Reading entity...")
 entity = client.arkiv.get_entity(entity_key)
@@ -101,11 +102,10 @@ print(f"✅ Entity deleted!")
 print(f"   Block: {receipt.block_number}")
 
 # Verify deletion
-deleted_entity = client.arkiv.get_entity(entity_key)
-if deleted_entity is None:
-    print("   Confirmed: Entity no longer exists\n")
-else:
+if client.arkiv.entity_exists(entity_key):
     print("   ⚠️  Entity still exists (unexpected)\n")
+else:
+    print("   Confirmed: Entity no longer exists\n")
 
 print("✅ CRUD operations complete!")
 

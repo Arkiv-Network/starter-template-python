@@ -1,10 +1,10 @@
-"""Tests for basic CRUD operations (Example 1)."""
+"""Tests for Example 2: Entity CRUD Operations."""
 
 from arkiv import Arkiv
 
 
-class TestBasicCRUD:
-    """Test basic CRUD operations from example 01."""
+class TestEntityCRUD:
+    """Test entity CRUD operations from example 02."""
 
     def test_create_entity(self, arkiv_client: Arkiv, test_payload, test_attributes):
         """Test entity creation."""

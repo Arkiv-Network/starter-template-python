@@ -65,7 +65,7 @@ def test_custom_account(arkiv_node):
     # Verify owner is the custom account
     entity = custom_client.arkiv.get_entity(entity_key)
     assert entity is not None
-    assert entity.owner.lower() == account.address.lower()
+    assert entity.owner == account.address
 
 
 def test_multiple_accounts_switch_to(arkiv_node):
@@ -102,7 +102,7 @@ def test_multiple_accounts_switch_to(arkiv_node):
     # Verify owner is second account
     entity = client.arkiv.get_entity(entity_key)
     assert entity is not None
-    assert entity.owner.lower() == second_account.address.lower()
+    assert entity.owner == second_account.address
     
     # Switch back to original (need to find the key)
     for name, acc in client.accounts.items():

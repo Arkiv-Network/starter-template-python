@@ -362,6 +362,22 @@ entity_key, receipt = client.arkiv.create_entity(
 )
 ```
 
+### Checking Entity Existence
+
+```python
+# Check if entity exists (returns bool)
+exists = client.arkiv.entity_exists(entity_key)
+if exists:
+    entity = client.arkiv.get_entity(entity_key)
+    # Process entity...
+
+# get_entity() raises ValueError if not found
+try:
+    entity = client.arkiv.get_entity(entity_key)
+except ValueError:
+    print("Entity not found")
+```
+
 ### Querying Entities
 
 ```python
@@ -508,7 +524,8 @@ uv sync  # Reinstall dependencies
 ### Entity Not Found
 - Verify entity hasn't expired (`entity.expires_at_block`)
 - Check entity key is correct format
-- Use `client.arkiv.get_entity(entity_key)` - returns None if not found
+- Use `client.arkiv.entity_exists(entity_key)` to check if entity exists (returns bool)
+- `client.arkiv.get_entity(entity_key)` raises `ValueError` if entity not found
 
 ---
 
@@ -854,6 +871,7 @@ created_watcher = client.arkiv.watch_entity_created(on_entity_created)
 9. **Show correct patterns immediately** - Wrong code followed by correct code helps learning
 10. **Prefer high-level event watchers** - Use `watch_entity_*()` methods over raw contract filters
 11. **Note the watch_entity_deleted type bug** - Always add `# type: ignore[arg-type]` when using it
+12. **Use `entity_exists()` to check existence** - Cleaner than try-except with `get_entity()`
 
 ---
 

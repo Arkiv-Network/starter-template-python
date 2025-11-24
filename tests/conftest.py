@@ -1,6 +1,8 @@
 """Test configuration for starter template examples."""
 
 import pytest
+from typing import cast
+from web3.providers.base import BaseProvider
 
 from arkiv import Arkiv, NamedAccount
 from arkiv.node import ArkivNode
@@ -19,7 +21,7 @@ def arkiv_node():
 @pytest.fixture(scope="session")
 def arkiv_client(arkiv_node: ArkivNode):
     """Provide an Arkiv client connected to test node."""
-    provider = ProviderBuilder().node(arkiv_node).build()
+    provider = cast(BaseProvider, ProviderBuilder().node(arkiv_node).build())
 
     # Create and fund test account
     account = NamedAccount.create("test-account")
