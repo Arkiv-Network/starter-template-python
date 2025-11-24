@@ -13,6 +13,8 @@ Run this example: python examples/01_basic_crud.py
 from arkiv.provider import ProviderBuilder
 from arkiv import Arkiv, NamedAccount
 from arkiv.node import ArkivNode
+from typing import cast
+from web3.providers.base import BaseProvider
 
 
 print("🚀 Step 1: Create local arkiv client (and node) ...")
@@ -23,8 +25,9 @@ print(f"✅ Default client account funding:  {client.eth.get_balance(client.eth.
 # Step 1: Start a local Arkiv node (runs in Docker)
 print("\n🚀 Step 2: Constructing provider for custom RPC URL...")
 local_node = client.node
+assert local_node is not None, "Arkiv client should have started a node"
 rpc_url = local_node.http_url
-provider = ProviderBuilder().custom(url=rpc_url).build()
+provider = cast(BaseProvider, ProviderBuilder().custom(url=rpc_url).build())
 print(f"✅ Provider running: {provider}")
 
 # Step 3a: Create and fund an account for transactions
@@ -53,7 +56,8 @@ entity = custom_client.arkiv.get_entity(entity_key)
 print("✅ Retrieved entity:")
 print(f"   Key: {entity.key}")
 print(f"   Owner: {entity.owner}")
-print(f"   Content: {entity.payload.decode('utf-8')}")
+if entity.payload:
+    print(f"   Content: {entity.payload.decode('utf-8')}")
 print(f"   Content Type: {entity.content_type}")
 print(f"   Expires At Block: {entity.expires_at_block}")
 
@@ -69,7 +73,8 @@ print(f"✅ Entity updated! Receipt: {receipt}")
 
 # Verify the update
 updated_entity = custom_client.arkiv.get_entity(entity_key)
-print(f"📖 Updated content: {updated_entity.payload.decode('utf-8')}, expires at: {updated_entity.expires_at_block}")
+if updated_entity.payload:
+    print(f"📖 Updated content: {updated_entity.payload.decode('utf-8')}, expires at: {updated_entity.expires_at_block}")
 
 print("\n🔄 Step 8: Extending entity...")
 receipt = custom_client.arkiv.extend_entity(entity_key, extend_by=custom_client.arkiv.to_seconds(minutes=1))
