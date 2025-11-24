@@ -33,7 +33,7 @@ def arkiv_client(arkiv_node: ArkivNode):
 @pytest.fixture
 def test_payload():
     """Provide test payload data."""
-    return b"Test entity for automated testing"
+    return b"Test payload for automated testing"
 
 
 @pytest.fixture

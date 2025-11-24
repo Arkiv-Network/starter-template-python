@@ -48,8 +48,8 @@ Store, query, and manage data on-chain with the simplicity of a traditional data
 3. Give your project a name and click "Create repository"
 4. Clone your new repository:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/YOUR-REPO-NAME
-   cd YOUR-REPO-NAME
+   git clone https://github.com/<YOUR-USERNAME>/<YOUR-REPO-NAME>
+   cd <YOUR-REPO-NAME>
    code .
    ```
 
