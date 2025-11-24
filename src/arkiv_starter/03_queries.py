@@ -1,5 +1,5 @@
 """
-Example 2: Querying Entities with Filters
+Example 3: Querying Entities with Filters
 
 This example demonstrates:
 - Creating multiple entities
@@ -7,7 +7,7 @@ This example demonstrates:
 - Sorting results
 - Pagination
 
-Run this example: python examples/02_queries.py
+Run this example: uv run python -m arkiv_starter.03_queries
 """
 
 from arkiv.provider import ProviderBuilder

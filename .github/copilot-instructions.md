@@ -241,6 +241,45 @@ print(account.name)          # Account name (NamedAccount only)
 print(account.key)  # Use account.private_key instead
 ```
 
+### Managing Multiple Accounts
+
+The Arkiv client can manage multiple accounts and switch between them:
+
+```python
+# ✅ CORRECT - Add accounts to client and switch between them
+from arkiv import Arkiv, NamedAccount
+
+# Start with one account
+client = Arkiv()  # Uses default account
+original_account = client.eth.default_account
+
+# Create and add a second account
+new_account = NamedAccount.create("second-account")
+node = client.node
+assert node is not None
+node.fund_account(new_account)
+
+# Add to client's account registry
+client.accounts["second-account"] = new_account
+
+# Switch active signing account
+client.switch_to("second-account")
+# Now all transactions use new_account
+
+# Switch back to original
+client.switch_to(client.eth.default_account)  # Can use address or name
+
+# ❌ WRONG - Creating separate clients for each account
+client1 = Arkiv(provider, account=account1)  # Unnecessary
+client2 = Arkiv(provider, account=account2)  # Wasteful
+# Better: Use one client and switch_to()
+```
+
+**Use cases for multiple accounts:**
+- Testing ownership transfers (create entity with account A, transfer to account B)
+- Multi-user scenarios (simulate different users in tests)
+- Demonstrating permissions (only owner can update/delete)
+
 ---
 
 ## 🏃 Running Examples
@@ -342,9 +381,48 @@ entities = list(client.arkiv.query_entities(
 
 ### Listening to Events
 
-```python
-from arkiv.node import ArkivNode
+Arkiv provides high-level event watchers with typed callbacks. **Prefer these over raw contract filters:**
 
+```python
+# ✅ CORRECT - Use Arkiv's convenience methods with typed callbacks
+from arkiv.types import CreateEvent, UpdateEvent, DeleteEvent, ExtendEvent, ChangeOwnerEvent, TxHash
+
+def on_entity_created(event: CreateEvent, tx_hash: TxHash) -> None:
+    print(f"Created: {event.key} by {event.owner_address}")
+    print(f"Expires at block: {event.expiration_block}")
+
+def on_entity_updated(event: UpdateEvent, tx_hash: TxHash) -> None:
+    print(f"Updated: {event.key}")
+    print(f"Expiration: {event.old_expiration_block} → {event.new_expiration_block}")
+
+def on_entity_deleted(event: DeleteEvent, tx_hash: TxHash) -> None:
+    print(f"Deleted: {event.key} by {event.owner_address}")
+
+# Set up watchers (returns filter objects for cleanup)
+created_watcher = client.arkiv.watch_entity_created(on_entity_created)
+updated_watcher = client.arkiv.watch_entity_updated(on_entity_updated)
+deleted_watcher = client.arkiv.watch_entity_deleted(on_entity_deleted)  # type: ignore[arg-type]
+
+# Also available:
+extended_watcher = client.arkiv.watch_entity_extended(callback)  # ExtendEvent
+owner_changed_watcher = client.arkiv.watch_owner_changed(callback)  # ChangeOwnerEvent
+
+# Cleanup (automatic on client close, or manual):
+client.arkiv.cleanup_filters()  # Uninstall all watchers
+# Or individually: created_watcher.uninstall()
+```
+
+**Event Types Available:**
+- `CreateEvent`: `key`, `owner_address`, `expiration_block`
+- `UpdateEvent`: `key`, `owner_address`, `old_expiration_block`, `new_expiration_block`
+- `ExtendEvent`: `key`, `owner_address`, `old_expiration_block`, `new_expiration_block`
+- `ChangeOwnerEvent`: `key`, `old_owner_address`, `new_owner_address`
+- `DeleteEvent`: `key`, `owner_address`
+
+**For advanced use cases (raw contract filters):**
+
+```python
+# ❌ DISCOURAGED - Low-level contract events (use watch_entity_* instead)
 event_filter = client.arkiv.contract.events.ArkivEntityCreated.create_filter(
     from_block="latest"
 )
@@ -714,6 +792,53 @@ account = NamedAccount.create("my-account")
 # Never share private keys across insecure channels
 ```
 
+### Misconception 11: "I Should Use Raw Contract Events"
+**Reality:** Arkiv provides high-level event watchers
+
+**What developers do (coming from web3.py):**
+```python
+# ❌ Low-level approach (works but not recommended)
+event_filter = client.arkiv.contract.events.ArkivEntityCreated.create_filter(
+    from_block="latest"
+)
+for event in event_filter.get_new_entries():
+    entity_key = hex(event['args']['entityKey'])  # Manual parsing
+    owner = event['args']['ownerAddress']
+    # Process event...
+```
+
+**Guide them to:**
+```python
+# ✅ High-level convenience methods with typed callbacks
+from arkiv.types import CreateEvent, TxHash
+
+def on_entity_created(event: CreateEvent, tx_hash: TxHash) -> None:
+    print(f"Created: {event.key} by {event.owner_address}")
+    # event is typed, no manual parsing needed
+
+created_watcher = client.arkiv.watch_entity_created(on_entity_created)
+# Automatic polling, typed events, easy cleanup
+```
+
+**Benefits of convenience methods:**
+- ✅ Typed event objects (CreateEvent, UpdateEvent, etc.)
+- ✅ Automatic polling (no manual `get_new_entries()` loop)
+- ✅ Cleaner callbacks instead of dict access
+- ✅ Centralized cleanup with `client.arkiv.cleanup_filters()`
+- ✅ No camelCase confusion (event.key not event['args']['entityKey'])
+
+**Available watchers:**
+- `watch_entity_created()` → CreateEvent
+- `watch_entity_updated()` → UpdateEvent
+- `watch_entity_extended()` → ExtendEvent
+- `watch_owner_changed()` → ChangeOwnerEvent
+- `watch_entity_deleted()` → DeleteEvent (note: has type hint bug, use `# type: ignore[arg-type]`)
+
+**Only use raw contract events if:**
+- You need historical event queries with complex filters
+- You're building custom indexing logic
+- You need to listen to non-Arkiv contracts
+
 ---
 
 ## ✨ Pro Tips for AI Assistants
@@ -727,6 +852,8 @@ account = NamedAccount.create("my-account")
 7. **Proactively address misconceptions** - Don't wait for the developer to make mistakes
 8. **Explain blockchain constraints** - Size limits, gas costs, immutability
 9. **Show correct patterns immediately** - Wrong code followed by correct code helps learning
+10. **Prefer high-level event watchers** - Use `watch_entity_*()` methods over raw contract filters
+11. **Note the watch_entity_deleted type bug** - Always add `# type: ignore[arg-type]` when using it
 
 ---
 

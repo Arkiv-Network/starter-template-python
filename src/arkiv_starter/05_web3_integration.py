@@ -1,5 +1,5 @@
 """
-Example 4: Web3.py Integration
+Example 5: Web3.py Integration
 
 This example demonstrates:
 - Using Arkiv with existing web3.py code
@@ -7,7 +7,7 @@ This example demonstrates:
 - Mixing Arkiv operations with standard Web3 calls
 - Full CRUD lifecycle (create, read, update, delete)
 
-Run this example: uv run python -m arkiv_starter.04_web3_integration
+Run this example: uv run python -m arkiv_starter.05_web3_integration
 """
 
 from arkiv.provider import ProviderBuilder
