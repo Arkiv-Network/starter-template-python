@@ -288,10 +288,11 @@ client2 = Arkiv(provider, account=account2)  # Wasteful
 
 ```bash
 # ✅ CORRECT - Run as modules
-uv run python -m arkiv_starter.01_basic_crud
-uv run python -m arkiv_starter.02_queries
-uv run python -m arkiv_starter.03_events
-uv run python -m arkiv_starter.04_web3_integration
+uv run python -m arkiv_starter.01_clients
+uv run python -m arkiv_starter.02_entity_crud
+uv run python -m arkiv_starter.03_queries
+uv run python -m arkiv_starter.04_events
+uv run python -m arkiv_starter.05_web3_integration
 
 # ✅ CORRECT - Run tests
 uv run pytest
@@ -302,8 +303,8 @@ uv run pytest -n auto  # Parallel execution
 
 ```bash
 # ❌ WRONG - Don't run files directly
-python src/arkiv_starter/01_basic_crud.py  # Import errors
-cd src && python -m arkiv_starter.01_basic_crud  # Wrong directory
+python src/arkiv_starter/02_entity_crud.py  # Import errors
+cd src && python -m arkiv_starter.02_entity_crud  # Wrong directory
 ```
 
 ---
@@ -503,7 +504,7 @@ query = '$owner = "..." AND $contentType = "..."'  # Use $content_type
 
 - **README.md**: Comprehensive guide with table of contents
 - **API_REFERENCE.md**: Complete API documentation
-- **examples/**: 4 progressive tutorials (01→04)
+- **examples/**: 5 progressive tutorials (01→05)
 - **tests/**: Working test patterns to learn from
 
 ---
