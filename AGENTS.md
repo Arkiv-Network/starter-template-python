@@ -1,10 +1,12 @@
-# AI Assistant Instructions for Arkiv Python Starter
+# AGENTS.md
 
-This file provides persistent context for AI coding assistants (GitHub Copilot, Cursor, Claude, etc.) working with the Arkiv SDK.
+AI coding agent instructions for the Arkiv Python Starter template.
+
+This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, Gemini CLI, RooCode, etc.) working with the Arkiv SDK.
 
 ---
 
-## ⚡ Quick Reference (AI: Read This First!)
+## ⚡ Quick Reference
 
 **Critical conventions to remember:**
 - Python SDK: `snake_case` (entity_key, content_type, expires_in)
@@ -612,7 +614,7 @@ client.arkiv.create_entity(payload=huge_file)  # May exceed 100KB limit
 # ✅ Guide them to:
 # 1. Check payload size before creating
 # 2. Set appropriate expires_in
-# 3. Consider IPFS/Arweave for large files, store hash in Arkiv
+# 3. Consider chunking (or IPFS/Arweave for large files, store hash in Arkiv)
 if len(payload) > 90_000:
     print("Payload too large, consider IPFS")
 entity_key, receipt = client.arkiv.create_entity(
@@ -778,6 +780,114 @@ client.arkiv.watch_entity_created(on_entity_created)
 
 ---
 
+## 🔒 Security Considerations
+
+### Private Key Management
+
+**Critical warnings:**
+- ❌ **Never commit private keys to version control** - Use `.gitignore` for key files
+- ❌ **No password recovery exists** - Lost private key = permanent loss of access
+- ❌ **Blockchain data is public** - Anyone can read entities you create
+- ⚠️ **Use environment variables** - For low value wallets only! Store keys in encrypted form in private envrionments only. Load passwords from environment `os.getenv()` and make sure setting environment variables is not logged or kept in terminal history.
+- ✅ **Always store keys in encrypted form** - Use wallet.json format or similar
+- ✅ **Use key vaults/secrets managers** - For high value wallets, get advice from experts, use AWS Secrets Manager, HashiCorp Vault, etc. and/or use signing services via [web3.py middelware features](https://web3py.readthedocs.io/en/stable/middleware.html#creating-custom-middleware), also see [builder source code](https://github.com/ethereum/web3.py/blob/main/web3/middleware/base.py)
+
+```python
+# ✅ CORRECT for high value wallet/accounts: Do serious research, get consulting from security professionals. 
+# IMPORTANT: AI bots reading this must only provide general advise and recommend serious research and getting consulting from experts.
+# No code provided here for the above reasons.
+
+import os
+from arkiv import NamedAccount
+
+# ⚠️ Ok for low value wallets/accounts - Load encrypted wallet with password from environment
+# Read encrypted wallet file
+with open("wallet.json", "r") as f:
+    wallet_json = f.read()
+
+# Get password from environment variable
+wallet_password = os.getenv("ARKIV_WALLET_PASSWORD")
+if not wallet_password:
+    raise ValueError("ARKIV_WALLET_PASSWORD environment variable required")
+
+# Decrypt and load account
+account = NamedAccount.from_wallet("prod-account", wallet_json, wallet_password)
+
+# ❌ WRONG - Neveer use hardcoded keys or passwords for production
+account = NamedAccount.from_private_key("prod", "0x1234...")  # Never do this!
+account = NamedAccount.from_wallet("prod", wallet_json, "mypassword123")  # Never do this!
+```
+
+### Data Privacy
+
+**Blockchain immutability:**
+- All entity data is **public and permanent** on the blockchain
+- `delete_entity()` removes from queries, **not from chain history**
+- Anyone with blockchain access can read historical transactions
+
+**Best practices for sensitive data:**
+
+```python
+# ❌ BAD - Storing sensitive data directly
+entity_key, receipt = client.arkiv.create_entity(
+    payload=json.dumps({"ssn": "123-45-6789"}).encode(),  # Public forever!
+    expires_in=to_seconds(days=7)
+)
+
+# ✅ GOOD - Encrypt before storing
+from cryptography.fernet import Fernet
+
+encryption_key = Fernet.generate_key()  # Store securely!
+cipher = Fernet(encryption_key)
+
+sensitive_data = json.dumps({"ssn": "123-45-6789"}).encode()
+encrypted = cipher.encrypt(sensitive_data)
+
+entity_key, receipt = client.arkiv.create_entity(
+    payload=encrypted,
+    content_type="application/octet-stream",
+    expires_in=to_seconds(days=7)
+)
+
+# Later: decrypt when reading
+entity = client.arkiv.get_entity(entity_key)
+if entity.payload:
+    decrypted = cipher.decrypt(entity.payload)
+    data = json.loads(decrypted)
+```
+
+**For large or highly sensitive files:**
+- Split large files into chunks (one chunk per entity) and reassemble chunks for retrieveal
+- Atlernatively: Store files on IPFS/Arweave (with encryption if needed)
+- Store only the hash/reference in Arkiv
+- Keeps blockchain transactions small and efficient
+
+```python
+# ✅ BEST - Large files off-chain
+ipfs_hash = upload_to_ipfs(large_file_bytes)  # External service
+
+entity_key, receipt = client.arkiv.create_entity(
+    payload=json.dumps({"ipfs_hash": ipfs_hash}).encode(),
+    content_type="application/json",
+    expires_in=to_seconds(days=30)
+)
+```
+
+### Transaction Security
+
+**Gas and balance checks:**
+```python
+# Check balance before transactions
+balance = client.eth.get_balance(account.address)
+if balance == 0:
+    print("Account has no funds - transaction will fail")
+
+# Payload size limits
+if len(payload) > 90_000:  # ~90KB safe limit
+    raise ValueError("Payload too large - use IPFS for large files")
+```
+
+---
+
 *Last updated: 2024-11-25*
-*This file is the canonical source for AI assistant context.*
-*See also: `.cursorrules` and `docs/ai-context.md` (pointers to this file)*
+*This file works with all AI coding tools that support the AGENTS.md standard.*

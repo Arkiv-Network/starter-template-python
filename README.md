@@ -93,7 +93,7 @@ You should see output like:
 
 ### Built for AI-Assisted Development
 
-This template is designed to work seamlessly with AI coding assistants (GitHub Copilot, Cursor, Claude, etc.). It includes comprehensive context files (`.github/copilot-instructions.md`) that help AI agents understand Arkiv's conventions, common patterns, and potential pitfalls. Whether you're coding manually or with AI assistance, you'll have the guidance you need.
+This template includes an [`AGENTS.md`](https://agents.md/) file to work seamlessly with AI coding assistants (GitHub Copilot, Cursor, Aider, Gemini CLI, etc.). The `AGENTS.md` helps AI agents understand Arkiv's conventions, common patterns, and potential pitfalls. 
 
 ## Understanding Entities
 
@@ -310,7 +310,7 @@ print(entity.created_at_block)
 - Query syntax prioritizes readability and SQL-like familiarity
 - Contract events follow Solidity conventions (cannot be changed)
 
-See `.github/copilot-instructions.md` for complete naming convention details and common pitfalls.
+See `AGENTS.md` for complete naming convention details and common pitfalls.
 
 ### Common Tasks
 
