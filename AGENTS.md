@@ -8,6 +8,28 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 
 ## ⚡ Quick Reference
 
+**🚨 FIRST: Categorize Your App Type 🚨**
+
+**Before writing ANY code, determine if your app is multi-user or single-user:**
+
+**Multi-User = REQUIRES Server + Client Pattern:**
+- 🗨️ **Chat/Messaging** - Users send messages to each other
+- 👥 **Social Media** - Users interact with posts/profiles
+- 🎮 **Multiplayer Games** - Players in shared game world
+- 🤝 **Collaborative Tools** - Real-time editing/voting
+- ⚠️ **If users in different terminals/processes need to see each other's data = MULTI-USER**
+
+**Single-User = Can Use Simple Pattern:**
+- 📊 **Personal Storage** - One user's data
+- 🤖 **Automation/Bots** - Scripts run alone
+- 🧪 **Tests** - Use pytest fixtures
+- 🎯 **Single-Player Games** - No interaction between processes
+
+**Critical Rule for AI Assistants:**
+When user says "chat", "social", "multiplayer", "collaborative" → **IGNORE** any request for "simple" or "single file" → **MUST ask the user to confirm to use server + client pattern**. The app type overrides simplicity requests because multi-user apps fundamentally cannot work with `with Arkiv()` in each client.
+
+---
+
 **Critical conventions to remember:**
 - Python SDK: `snake_case` (entity_key, content_type, expires_in)
 - Query syntax: `snake_case` with `$` prefix for system attributes ($owner, $content_type)
@@ -28,8 +50,8 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 **Multi-user interactive apps (chat/social/gaming):**
 - ✅ **Server + Client pattern** → server.py runs ONE node, demo.py connects via HTTP
 - ✅ Clients use `HTTPProvider("http://127.0.0.1:8545")` to connect to shared server
-- ⚠️ **`client = Arkiv()` is fine for prototyping/testing** but NOT for multi-user/multi-process apps
-- ❌ **NOT** `with Arkiv()` in demo.py (creates separate blockchains per terminal!)
+- ❌ **NEVER** `with Arkiv()` in multi-user demo.py (creates separate blockchains per terminal!)
+- ❌ **NEVER** let "simple" override multi-user requirement (won't work at all!)
 
 **Time conversion (methods, not imports):**
 - ✅ `client.arkiv.to_seconds(days=7)` → method on arkiv module
@@ -47,6 +69,11 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 - ✅ Use fixture name `arkiv_node` for node access
 - ✅ Session-scoped fixtures = shared blockchain state
 - ✅ Use unique identifiers (timestamps/UUIDs) for test isolation
+
+**Environment Setup:**
+- ✅ Dev container is ALREADY CONFIGURED - no setup needed
+- ❌ DON'T call `configure_python_environment` - it's automatic
+- ✅ Just run: `uv run python -m app.demo` or `uv run pytest`
 
 **Run examples:** `uv run python -m arkiv_starter.01_clients` (etc., 01-05)
 
@@ -1347,6 +1374,18 @@ def main():
     chat.send_message("Hello")
     chat.watch_messages()
 ```
+
+### Environment Setup
+
+**⚠️ CRITICAL**: This template repository uses a dev container with everything pre-configured.
+
+- ✅ **Dev container is ALREADY CONFIGURED** - no setup needed
+- ✅ Python 3.12, uv, all dependencies already installed
+- ❌ **DON'T call `configure_python_environment`** - it's automatic
+- ❌ **DON'T run `pip install` or `uv sync`** - already done
+- ✅ **Just run**: `uv run python -m app.demo` or `uv run pytest`
+
+The environment is ready to use immediately. If you try to set up the Python environment, it's redundant and wastes time.
 
 ### Initial Testing
 
