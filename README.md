@@ -8,6 +8,7 @@ This starter template provides everything you need to build applications with th
 
 - [What is Arkiv?](#what-is-arkiv)
 - [Quick Start](#quick-start)
+- [👶 For Beginners](#-for-beginners)
 - [Understanding Entities](#understanding-entities)
 - [Examples](#examples)
 - [Development Guide](#development-guide)
@@ -94,6 +95,46 @@ You should see output like:
 ### Built for AI-Assisted Development
 
 This template includes an [`AGENTS.md`](https://agents.md/) file to work seamlessly with AI coding assistants (GitHub Copilot, Cursor, Aider, Gemini CLI, etc.). The `AGENTS.md` helps AI agents understand Arkiv's conventions, common patterns, and potential pitfalls. 
+
+---
+
+## 👶 For Beginners
+
+**New to blockchain or Arkiv?** We've created special materials just for you!
+
+### Start Here (5 minutes)
+👉 **[START_HERE.md](START_HERE.md)** - Your step-by-step first experience
+
+This guide will take you from zero to storing data on blockchain in 5 minutes. No prior experience needed.
+
+### Build with AI (Recommended!)
+👉 **[PROMPTS.md](PROMPTS.md)** - Copy-paste project ideas for AI assistants
+
+Don't want to write code? Let GitHub Copilot or Cursor build for you! We've prepared conversation starters for:
+- Todo list
+- Message board
+- Voting system
+- Event RSVP
+- Leaderboard
+- Bookmark manager
+
+### Why Beginners Love This
+
+- ✅ **Zero blockchain setup** - Dev container handles everything
+- ✅ **15-line first example** - See results in 30 seconds (`00_hello_arkiv.py`)
+- ✅ **Plain English docs** - No jargon (glossary in START_HERE.md)
+- ✅ **AI-powered** - Build with Copilot, learn by experimenting
+- ✅ **Safe sandbox** - Can't break anything, local blockchain resets
+
+### Quick Answers
+
+**Do I need Python experience?** Basic helps, but AI can write code for you  
+**Is this real blockchain?** Locally it's simulated, deploys to real blockchain later  
+**Will it cost money?** Not for learning! Local + testnet are free  
+
+**Ready?** Go to **[START_HERE.md](START_HERE.md)** now! 🚀
+
+---
 
 ## Understanding Entities
 
