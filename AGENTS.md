@@ -25,6 +25,23 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 - ✅ `client.current_signer` → track current account name for switching back
 - ✅ `NamedAccount.create(name)` → for local dev (not Account.create())
 
+**Time conversion (methods, not imports):**
+- ✅ `client.arkiv.to_seconds(days=7)` → method on arkiv module
+- ✅ `client.arkiv.to_blocks(days=1)` → method on arkiv module
+- ❌ `from arkiv import to_seconds` → WRONG, not exported
+
+**Account and entity access:**
+- ✅ `client.eth.default_account` → current account address (string)
+- ✅ `entity.attributes` → dict of custom attributes (or None)
+- ✅ `entity.payload` → bytes data (or None, always check!)
+- ✅ `account.address` → when you have NamedAccount object
+
+**Testing:**
+- ✅ Use fixture name `arkiv_client` (not `client`)
+- ✅ Use fixture name `arkiv_node` for node access
+- ✅ Session-scoped fixtures = shared blockchain state
+- ✅ Use unique identifiers (timestamps/UUIDs) for test isolation
+
 **Run examples:** `uv run python -m arkiv_starter.01_clients` (etc., 01-05)
 
 ---
@@ -441,13 +458,29 @@ account = Account.create()  # LocalAccount won't work with node.fund_account()
 ### Account Attributes
 
 ```python
-# ✅ CORRECT
+# ✅ CORRECT - When you have an account object
 print(account.address)       # Ethereum address
 print(account.private_key)   # Private key for signing
 print(account.name)          # Account name (NamedAccount only)
 
 # ❌ WRONG
 print(account.key)  # Use account.private_key instead
+```
+
+### Accessing the Current Account from Client
+
+```python
+# ✅ CORRECT - Get current account address from client
+current_address = client.eth.default_account  # Returns address string
+
+# ✅ CORRECT - Check if entity belongs to current user
+entity = client.arkiv.get_entity(entity_key)
+if entity.owner != client.eth.default_account:
+    print("You don't own this entity")
+
+# ❌ WRONG - These don't exist
+client.account.address           # AttributeError
+client.default_account.address   # AttributeError
 ```
 
 ### Managing Multiple Accounts
@@ -521,21 +554,149 @@ cd src && python -m arkiv_starter.02_entity_crud  # Wrong directory
 
 ## 🧪 Testing Patterns
 
-### Use Fixtures from conftest.py
+### Available Test Fixtures
+
+The project's `conftest.py` provides these fixtures:
 
 ```python
-# Tests have access to these fixtures:
-def test_something(client, account, arkiv_node):
-    # client: Arkiv instance
-    # account: NamedAccount instance
-    # arkiv_node: ArkivNode instance (already started and funded)
+# ✅ CORRECT - Use these exact fixture names
+def test_something(arkiv_client, arkiv_node):
+    # arkiv_client: Arkiv instance (session-scoped, shared across tests)
+    # arkiv_node: ArkivNode instance (session-scoped, already started)
     
-    entity_key, receipt = client.arkiv.create_entity(
+    entity_key, receipt = arkiv_client.arkiv.create_entity(
         payload=b"test data",
         expires_in=3600,
         content_type="text/plain"
     )
     assert entity_key is not None
+
+# ❌ WRONG - These fixture names don't exist
+def test_something(client, account):  # NameError: fixture 'client' not found
+```
+
+### Test Isolation with Session-Scoped Fixtures
+
+**⚠️ CRITICAL:** Session-scoped fixtures mean:
+- All tests share the SAME node and blockchain
+- Data created in one test is visible in other tests
+- Tests run in order but share state
+
+**Solutions for test isolation:**
+
+```python
+# ✅ Pattern 1: Unique identifiers per test
+import pytest
+import time
+
+@pytest.fixture
+def unique_channel():
+    """Generate unique channel name for test isolation."""
+    return f"test-{int(time.time() * 1000000)}"
+
+def test_messages(arkiv_client, unique_channel):
+    chat = ChatClient(arkiv_client, channel=unique_channel)
+    # Now isolated from other tests
+
+# ✅ Pattern 2: Function-scoped client for full isolation
+from typing import cast
+from web3.providers.base import BaseProvider
+from arkiv import Arkiv, NamedAccount
+from arkiv.provider import ProviderBuilder
+
+@pytest.fixture
+def isolated_client(arkiv_node):
+    """Create a fresh client with unique account per test."""
+    provider = cast(BaseProvider, ProviderBuilder().node(arkiv_node).build())
+    account = NamedAccount.create(f"test-{int(time.time() * 1000000)}")
+    arkiv_node.fund_account(account)
+    client = Arkiv(provider, account=account)
+    yield client
+    client.arkiv.cleanup_filters()
+
+def test_with_isolation(isolated_client):
+    # Fresh client with unique account
+    pass
+
+# ✅ Pattern 3: Query with test-specific filters
+def test_user_messages(arkiv_client, unique_channel):
+    alice = ChatClient(arkiv_client, username="Alice", channel=unique_channel)
+    alice.send_message("Test message")
+    
+    # Query may return messages from other tests too
+    all_alice_msgs = alice.get_user_messages("Alice")
+    
+    # Filter for messages from THIS test
+    test_msgs = [m for m in all_alice_msgs if "Test message" in m["text"]]
+    assert len(test_msgs) == 1
+```
+
+### Testing Event Watchers
+
+Event watchers require special timing considerations:
+
+```python
+import time
+
+def test_event_watching(arkiv_client):
+    received_events = []
+    
+    def on_event(event, tx_hash):
+        received_events.append(event)
+    
+    # ✅ CORRECT - Set up watcher BEFORE creating entities
+    watcher = arkiv_client.arkiv.watch_entity_created(on_event)
+    
+    # Give watcher time to initialize
+    time.sleep(0.2)
+    
+    # Create entity
+    entity_key, receipt = arkiv_client.arkiv.create_entity(
+        payload=b"test",
+        expires_in=3600,
+        content_type="text/plain"
+    )
+    
+    # Wait for event processing (local node needs time)
+    time.sleep(1.0)
+    
+    # Now check events
+    assert len(received_events) >= 1
+    
+    # Cleanup
+    watcher.uninstall()
+
+# ❌ WRONG - Common pitfalls
+def test_event_watching_wrong(arkiv_client):
+    # Create entity FIRST → miss the event!
+    entity_key, _ = arkiv_client.arkiv.create_entity(...)
+    
+    # Set up watcher AFTER → too late!
+    watcher = arkiv_client.arkiv.watch_entity_created(on_event)
+    
+    # No sleep → event not processed yet
+    assert len(received_events) >= 1  # Fails!
+```
+
+### Type Hints for Arkiv Code
+
+```python
+# ✅ CORRECT - Standard type hint imports
+from typing import Any, Callable, Optional, cast
+from web3.providers.base import BaseProvider
+from arkiv import Arkiv, NamedAccount
+from arkiv.types import CreateEvent, DeleteEvent, TxHash
+
+# Callback type hints
+def setup_watcher(callback: Callable[[str, int], None]) -> None:
+    pass
+
+# Provider casting (avoids IDE errors)
+provider = cast(BaseProvider, ProviderBuilder().node(node).build())
+
+# ❌ WRONG - Old-style or incorrect
+def setup_watcher(callback: callable) -> None:  # Use Callable, not callable
+    pass
 ```
 
 ### Local Node Doesn't Support All Queries Yet
@@ -587,6 +748,27 @@ try:
     entity = client.arkiv.get_entity(entity_key)
 except ValueError:
     print("Entity not found")
+```
+
+### Accessing Entity Attributes
+
+```python
+# ✅ CORRECT - Attributes are directly on the entity object
+entity = client.arkiv.get_entity(entity_key)
+attr_dict = entity.attributes  # Returns dict or None
+
+# Example: Get channel from attributes
+if entity.attributes:
+    channel = entity.attributes.get("channel", "default")
+else:
+    channel = "default"
+
+# Example: Access payload safely
+if entity.payload:
+    data = entity.payload.decode('utf-8')
+    
+# ❌ WRONG - No separate method exists
+attributes = client.arkiv.get_entity_attributes(entity_key)  # Doesn't exist!
 ```
 
 ### Querying Entities
@@ -663,14 +845,15 @@ for event in event_filter.get_new_entries():
 ### Time Conversions
 
 ```python
-from arkiv import to_seconds, to_blocks
-
-# Convert time to seconds
-expires_in = to_seconds(days=7)
-expires_in = to_seconds(hours=2, minutes=30)
+# ✅ CORRECT - to_seconds and to_blocks are METHODS on the client
+expires_in = client.arkiv.to_seconds(days=7)
+expires_in = client.arkiv.to_seconds(hours=2, minutes=30)
 
 # Convert time to blocks (assuming 2s block time)
-expires_in_blocks = to_blocks(days=1, block_time=2)
+expires_in_blocks = client.arkiv.to_blocks(days=1, block_time=2)
+
+# ❌ WRONG - Don't try to import them
+from arkiv import to_seconds, to_blocks  # ImportError!
 ```
 
 ---
@@ -961,6 +1144,12 @@ client.arkiv.watch_entity_created(on_entity_created)
 11. **Prefer high-level event watchers** - Use `watch_entity_*()` methods over raw contract filters
 12. **Note the watch_entity_deleted type bug** - Always add `# type: ignore[arg-type]` when using it
 13. **Use `entity_exists()` to check existence** - Cleaner than try-except with `get_entity()`
+14. **Test fixture names matter** - Use `arkiv_client` and `arkiv_node`, not `client` or `account`
+15. **Session-scoped fixtures share state** - Use unique identifiers (timestamps, UUIDs) for test isolation
+16. **Event watchers need timing** - Set up BEFORE entity creation, add sleeps for processing
+17. **to_seconds is a method** - Use `client.arkiv.to_seconds()`, not `from arkiv import to_seconds`
+18. **Current account access** - Use `client.eth.default_account`, not `client.account.address`
+19. **Entity attributes are direct** - Use `entity.attributes`, not a separate method call
 
 ---
 
