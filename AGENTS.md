@@ -29,6 +29,190 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 
 ---
 
+## 🏗️ Critical: Understanding Arkiv Architecture
+
+### Client/Node Architecture
+
+**⚠️ MOST IMPORTANT CONCEPT**: Arkiv uses a **Client → Node → Blockchain Network** architecture.
+
+```
+LOCAL DEVELOPMENT (Single Node):
+┌─────────────┐      ┌─────────────────────────────┐
+│   Client    │ ───→ │      Arkiv Node             │
+│  (Arkiv)    │      │  (Full Blockchain Instance) │
+└─────────────┘      └─────────────────────────────┘
+
+PRODUCTION (Multi-Node Network):
+                     ┌────────────────────────────────────────────────────────────────┐
+                     │               BLOCKCHAIN (Network of nodes).                   │
+┌─────────────┐      │  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
+│   Client    │ ───→ │  │ Arkiv Node 1 │ ←──→ │ Arkiv Node 2 │ ←──→ │ Arkiv Node 3 │  │
+│  (Arkiv)    │      │  │  (Consensus) │      │  (Consensus) │      │  (Consensus) │  │
+└─────────────┘      │  └──────────────┘      └──────────────┘      └──────────────┘  │
+                     │              Shared Ledger (Replicated State)                  │
+                     └────────────────────────────────────────────────────────────────┘
+```
+
+**Key Understanding:**
+- **Client** = Python object that sends transactions/queries (lightweight)
+- **Arkiv Node** = Full blockchain node running consensus, storage, and networking (heavyweight)
+- **Local Node** = Complete, real blockchain node - NOT a simulation or mock
+- **Production Network** = Multiple nodes running the same software, forming consensus
+
+**Critical Insight:**
+Your local `ArkivNode()` is **identical** to production nodes - same code, same blockchain logic, same storage. The only difference is that it runs **alone** (single node) instead of in a **network** (multiple nodes forming consensus). This means:
+- ✅ Your local tests are running against **real blockchain code**
+- ✅ Behavior is identical to production (just without network consensus)
+- ✅ When you deploy, you're connecting to multiple copies of what you tested locally
+
+**For Clients to Interact:**
+- ⚠️ **Multiple clients MUST connect to the SAME node/blockchain**
+- ⚠️ Each `Arkiv()` creates a separate blockchain - clients on different nodes CANNOT see each other's data
+- ✅ Use shared node pattern (shown below) for multi-client communication
+
+### Each `Arkiv()` Creates a NEW Node!
+
+❌ **CRITICAL MISTAKE - Multiple Isolated Blockchains:**
+
+```python
+# This creates TWO separate blockchains that CANNOT communicate!
+client1 = Arkiv()  # Starts Node 1 with Blockchain A
+client2 = Arkiv()  # Starts Node 2 with Blockchain B (completely separate!)
+
+# Alice and Bob are in different universes - no communication possible!
+client1.arkiv.create_entity(...)  # Stored in Blockchain A
+client2.arkiv.create_entity(...)  # Stored in Blockchain B
+```
+
+**Why this happens:**
+- `Arkiv()` without parameters calls `ArkivNode().start()` internally
+- Each node runs its own blockchain (like starting separate PostgreSQL instances)
+- Coming from traditional APIs (where multiple clients → one server), this is counterintuitive
+
+✅ **CORRECT Pattern 1 - Single Client, Multiple Accounts (Testing/Simulation Only):**
+
+```python
+# Use when ONE entity needs to sign transactions as DIFFERENT accounts
+# Example: Testing ownership transfers, simulating multi-user scenarios
+client = Arkiv()  # One node, one blockchain
+
+# Create multiple accounts
+alice = NamedAccount.create("alice")
+bob = NamedAccount.create("bob")
+client.node.fund_account(alice)
+client.node.fund_account(bob)
+
+# Add to client registry
+client.accounts["alice"] = alice
+client.accounts["bob"] = bob
+
+# Switch signing account (same client controls both)
+client.switch_to("alice")
+client.arkiv.create_entity(...)  # Alice's message
+
+client.switch_to("bob")
+client.arkiv.create_entity(...)  # Bob's message (same blockchain!)
+```
+
+⚠️ **Important**: Pattern 1 is for single-client scenarios (tests, demos, automation). When simulating real multi-party interaction, use Pattern 2.
+
+✅ **CORRECT Pattern 2 - Multiple Independent Clients, Shared Node (Multi-Party Interaction):**
+
+```python
+# Use when DIFFERENT parties need to interact with each other
+# Each party maintains their own client and private key
+# Critical: Parties MUST NOT share accounts - each has independent client
+
+# Create ONE shared node
+main_client = Arkiv()  # Starts the node
+shared_node = main_client.node
+
+# Create provider from shared node
+from arkiv.provider import ProviderBuilder
+from web3.providers.base import BaseProvider
+from typing import cast
+
+provider = cast(BaseProvider, ProviderBuilder().node(shared_node).build())
+
+# Each party gets their own client with their own account
+alice_account = NamedAccount.create("alice")
+bob_account = NamedAccount.create("bob")
+shared_node.fund_account(alice_account)
+shared_node.fund_account(bob_account)
+
+alice_client = Arkiv(provider=provider, account=alice_account)
+bob_client = Arkiv(provider=provider, account=bob_account)
+
+# Now Alice and Bob interact independently on the SAME blockchain
+alice_client.arkiv.create_entity(...)  # Alice's action (Alice's private key)
+bob_client.arkiv.create_entity(...)    # Bob's action (Bob's private key)
+# They can see each other's data because they share the blockchain!
+```
+
+**Key Difference:**
+- **Pattern 1**: ONE client switches between accounts (for testing/automation)
+- **Pattern 2**: MULTIPLE independent clients, each with own account (for real multi-party interaction)
+
+### Node Lifecycle Management
+
+**⚠️ CRITICAL**: Nodes are long-running processes that MUST be cleaned up.
+
+❌ **WRONG - Resource Leak:**
+
+```python
+def my_function():
+    client = Arkiv()  # Starts node
+    client.arkiv.create_entity(...)
+    # Function ends, node keeps running! Memory leak!
+```
+
+You'll see this warning:
+```
+Arkiv client with managed node is being destroyed but node is still running.
+Call arkiv.node.stop() or use context manager: 'with Arkiv() as arkiv:'
+```
+
+✅ **CORRECT Pattern 1 - Context Manager (Recommended):**
+
+```python
+# Node automatically stopped when exiting context
+with Arkiv() as client:
+    client.arkiv.create_entity(...)
+    # ... do work ...
+# Node stopped here automatically
+```
+
+✅ **CORRECT Pattern 2 - Explicit Cleanup:**
+
+```python
+client = Arkiv()
+try:
+    client.arkiv.create_entity(...)
+    # ... do work ...
+finally:
+    if client.node:
+        client.node.stop()  # Explicitly stop node
+```
+
+✅ **CORRECT Pattern 3 - Shared Node in Threads:**
+
+```python
+# Main thread owns the node
+main_client = Arkiv()
+
+def worker_thread(shared_node):
+    provider = ProviderBuilder().node(shared_node).build()
+    client = Arkiv(provider=provider, account=my_account)
+    # Do work...
+    client.arkiv.cleanup_filters()  # Clean up event watchers
+    # DON'T call client.node.stop() - main thread owns the node!
+
+# Later, in main thread:
+main_client.node.stop()  # Only the owner stops the node
+```
+
+---
+
 ## 🌟 What is Arkiv? (For New AI Assistants)
 
 **Arkiv is a Web3 database that solves the Web3 data trilemma: Decentralization + Queryability + Simplicity.**
@@ -889,5 +1073,191 @@ if len(payload) > 90_000:  # ~90KB safe limit
 
 ---
 
-*Last updated: 2024-11-25*
+## 🤖 AI-Generated Project Guidelines
+
+When creating new applications using AI assistants (Copilot, Cursor, etc.), follow these critical patterns:
+
+### Project Structure
+
+**⚠️ IMPORTANT**: User code goes in `src/`, NOT in `src/arkiv_starter/`
+
+```
+src/
+├── arkiv_starter/          # Template examples (READ-ONLY reference)
+│   ├── 01_clients.py
+│   ├── 02_entity_crud.py
+│   └── ...
+│
+├── my_app/                 # ✅ Your application code here
+│   ├── __init__.py
+│   ├── core.py            # Core functionality
+│   ├── models.py          # Data models
+│   └── utils.py           # Helper functions
+│
+├── my_app_demo.py         # ✅ Demo script (imports from my_app/)
+└── tests/
+    └── test_my_app.py     # ✅ Tests for your app
+```
+
+❌ **WRONG - Polluting template examples:**
+```python
+# DON'T add your code to arkiv_starter/
+src/arkiv_starter/my_chat_app.py  # Wrong location!
+```
+
+✅ **CORRECT - Separate user code:**
+```python
+# Put your code in its own module
+src/chat/
+├── __init__.py
+├── client.py       # Chat client class
+├── messages.py     # Message handling
+└── demo.py         # Demo script
+```
+
+### Demo vs. Core Code Separation
+
+**Key principle:** Demo code should USE your core functionality, not REPLICATE it.
+
+❌ **WRONG - Code duplication:**
+```python
+# chat_demo.py - DON'T do this
+def send_message(client, text):  # Reimplementing functionality
+    # ... duplicate code ...
+
+def watch_messages(client):      # Reimplementing functionality
+    # ... duplicate code ...
+
+# Demo uses duplicated code
+send_message(client, "Hello")
+```
+
+✅ **CORRECT - Demo imports and uses core code:**
+```python
+# src/chat/client.py - Core functionality
+class ChatClient:
+    def send_message(self, text: str):
+        # Implementation here
+        pass
+    
+    def watch_messages(self):
+        # Implementation here
+        pass
+
+# src/chat/demo.py - Demo uses core code
+from chat.client import ChatClient
+
+def main():
+    chat = ChatClient()
+    chat.send_message("Hello")
+    chat.watch_messages()
+```
+
+### Initial Testing
+
+**Always create a basic test** to verify your core functionality works:
+
+```python
+# tests/test_chat.py
+import pytest
+from chat.client import ChatClient
+
+def test_send_message(client):
+    """Test that messages can be sent successfully."""
+    chat = ChatClient(client=client)
+    
+    message_key = chat.send_message("Test message")
+    
+    assert message_key is not None
+    assert client.arkiv.entity_exists(message_key)
+
+def test_retrieve_messages(client):
+    """Test that messages can be retrieved."""
+    chat = ChatClient(client=client)
+    
+    # Send a message
+    chat.send_message("Test message")
+    
+    # Retrieve messages
+    messages = chat.get_messages()
+    
+    assert len(messages) > 0
+    assert messages[0]["text"] == "Test message"
+```
+
+### Complete AI Prompt Pattern
+
+Use this template when asking AI to create a new application:
+
+```
+Create a [application name] using Arkiv SDK with the following:
+
+1. Project Structure:
+   - Core code in src/[app_name]/ with __init__.py
+   - Main class in src/[app_name]/client.py
+   - Demo script in src/[app_name]/demo.py that IMPORTS and USES the main class
+   - Tests in tests/test_[app_name].py
+
+2. Implementation Requirements:
+   - Use context manager pattern: with Arkiv() as client
+   - For multi-user: Create ONE shared node, multiple clients with shared provider
+   - Always call client.node.stop() or use context manager for cleanup
+   - Add basic test that verifies core functionality
+
+3. Code Organization:
+   - Demo script should NOT duplicate core functionality
+   - Demo should import from the main module
+   - Include docstrings for all public methods
+
+4. Testing:
+   - Create at least 2 tests: one for creation, one for retrieval
+   - Use fixtures from conftest.py
+   - Run with: uv run pytest tests/test_[app_name].py
+```
+
+### Example: Good Project Creation
+
+**User prompt:**
+```
+Create a voting application using Arkiv. Follow the AI-Generated Project Guidelines 
+in AGENTS.md. Include core functionality in src/voting/, demo in src/voting/demo.py, 
+and tests in tests/test_voting.py.
+```
+
+**Expected AI output:**
+```
+src/voting/
+├── __init__.py
+├── poll.py          # Poll class with create_poll, vote, get_results
+├── demo.py          # Demo that imports Poll and shows usage
+tests/
+└── test_voting.py   # Tests for Poll functionality
+```
+
+**Demo pattern:**
+```python
+# src/voting/demo.py
+from voting.poll import Poll
+
+def main():
+    with Arkiv() as client:
+        poll = Poll(client)
+        
+        # Create poll
+        poll_id = poll.create("Favorite color?", ["Red", "Blue", "Green"])
+        
+        # Vote
+        poll.vote(poll_id, "Blue")
+        
+        # Show results
+        results = poll.get_results(poll_id)
+        print(results)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+*Last updated: 2025-11-25*
 *This file works with all AI coding tools that support the AGENTS.md standard.*
