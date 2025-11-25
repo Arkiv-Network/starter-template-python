@@ -74,6 +74,10 @@ assert extended_entity is not None
 print(f"   Extended expiration: {extended_entity.expires_at_block}\n")
 
 print("👤 Step 5: Changing entity owner...")
+# Track original signer before switching
+original_signer = client.current_signer
+print(f"   Current signer: {original_signer}")
+
 # Create a new account to transfer ownership to
 from arkiv import NamedAccount
 new_owner_account = NamedAccount.create("new-owner")
@@ -94,8 +98,10 @@ print(f"   Verified new owner: {transferred_entity.owner}\n")
 
 print("🗑️  Step 6: Deleting entity (as new owner)...")
 # Switch to new owner to delete (only owner can delete)
+print(f"   Switching from '{client.current_signer}' to 'new-owner' account...")
 client.accounts["new-owner"] = new_owner_account
 client.switch_to("new-owner")
+print(f"   Current signer: {client.current_signer}")
 
 receipt = client.arkiv.delete_entity(entity_key)
 print(f"✅ Entity deleted!")

@@ -4,6 +4,29 @@ This file provides persistent context for AI coding assistants (GitHub Copilot, 
 
 ---
 
+## ⚡ Quick Reference (AI: Read This First!)
+
+**Critical conventions to remember:**
+- Python SDK: `snake_case` (entity_key, content_type, expires_in)
+- Query syntax: `snake_case` with `$` prefix for system attributes ($owner, $content_type)
+- Contract events: `camelCase` (entityKey, ownerAddress, expirationBlock)
+- Entity attributes: `snake_case` (entity.key, entity.payload, entity.owner)
+
+**Return values:**
+- `create_entity()` → tuple: `(entity_key, receipt)`
+- `update_entity()` / `delete_entity()` → just `receipt`
+
+**Prefer these patterns:**
+- ✅ `client.arkiv.entity_exists(key)` → check existence (returns bool)
+- ✅ `client.arkiv.watch_entity_*()` → event watchers (not raw contract filters)
+- ✅ `client.switch_to(name)` → switch accounts (not multiple clients)
+- ✅ `client.current_signer` → track current account name for switching back
+- ✅ `NamedAccount.create(name)` → for local dev (not Account.create())
+
+**Run examples:** `uv run python -m arkiv_starter.01_clients` (etc., 01-05)
+
+---
+
 ## 🌟 What is Arkiv? (For New AI Assistants)
 
 **Arkiv is a Web3 database that solves the Web3 data trilemma: Decentralization + Queryability + Simplicity.**
@@ -251,7 +274,7 @@ from arkiv import Arkiv, NamedAccount
 
 # Start with one account
 client = Arkiv()  # Uses default account
-original_account = client.eth.default_account
+original_signer = client.current_signer  # Track original account name
 
 # Create and add a second account
 new_account = NamedAccount.create("second-account")
@@ -266,8 +289,9 @@ client.accounts["second-account"] = new_account
 client.switch_to("second-account")
 # Now all transactions use new_account
 
-# Switch back to original
-client.switch_to(client.eth.default_account)  # Can use address or name
+# Switch back to original using tracked signer name
+if original_signer:
+    client.switch_to(original_signer)  # Use account name, not address
 
 # ❌ WRONG - Creating separate clients for each account
 client1 = Arkiv(provider, account=account1)  # Unnecessary
@@ -465,45 +489,13 @@ expires_in_blocks = to_blocks(days=1, block_time=2)
 
 ---
 
-## 🚨 Common Mistakes to Avoid
-
-### ❌ Mistake 1: Wrong Naming Convention
-```python
-# WRONG - Mixing camelCase in Python
-client.arkiv.createEntity(payload=b"data", contentType="text/plain")
-```
-
-### ❌ Mistake 2: Wrong Entity Attributes
-```python
-# WRONG - Old API names
-entity.id        # Use entity.key
-entity.content   # Use entity.payload
-```
-
-### ❌ Mistake 3: Wrong Return Value Handling
-```python
-# WRONG - Not unpacking tuple
-tx_hash = client.arkiv.create_entity(...)
-```
-
-### ❌ Mistake 4: Wrong Event Arg Names
-```python
-# WRONG - snake_case in events
-entity_key = event['args']['entity_key']  # Use 'entityKey'
-```
-
-### ❌ Mistake 5: Wrong Query Syntax
-```python
-# WRONG - camelCase in queries
-query = '$owner = "..." AND $contentType = "..."'  # Use $content_type
-```
-
----
-
 ## 🎓 Learning Resources
 
 - **README.md**: Comprehensive guide with table of contents
-- **API_REFERENCE.md**: Complete API documentation
+- **SDK Source Code**: Check `.venv/lib/python3.12/site-packages/arkiv/` for authoritative docstrings
+  - `module_base.py`: All method signatures with detailed docstrings
+  - Use `semantic_search("method_name implementation")` to find SDK code
+  - SDK docstrings are the source of truth for parameters, return types, and behavior
 - **examples/**: 5 progressive tutorials (01→05)
 - **tests/**: Working test patterns to learn from
 
@@ -631,251 +623,161 @@ entity_key, receipt = client.arkiv.create_entity(
 ```
 
 ### Misconception 2: "Naming Should Be Consistent"
-**Reality:** Three different conventions (Python/Queries/Events)
+**Reality:** Three different conventions + entity keys are hex strings (not integers)
 
-**What developers assume:**
+**Wrong assumptions:**
 - "If Python uses snake_case, everything should"
-- "Event args should match SDK naming"
+- "Entity IDs are sequential integers like database IDs"
 
-**Proactively correct:**
 ```python
-# ❌ Logical but wrong:
-entities = client.arkiv.query_entities('$contentType = "..."')
-entity_key = event['args']['entity_key']
+# ❌ Multiple naming mistakes:
+entity_id = 123  # Not an integer!
+entities = client.arkiv.query_entities('$contentType = "..."')  # Wrong case!
+entity_key = event['args']['entity_key']  # Wrong case!
+print(entity.id)  # Wrong attribute!
 
-# ✅ Explain the three conventions:
-# - Python SDK: snake_case (content_type, entity_key)
-# - Queries: snake_case with $ ($content_type, $owner)
-# - Events: camelCase (entityKey, ownerAddress)
-entities = client.arkiv.query_entities('$content_type = "..."')
-entity_key = hex(event['args']['entityKey'])
+# ✅ Correct patterns:
+entity_key = "0xabc123..."  # Hex string (blockchain address)
+entities = client.arkiv.query_entities('$content_type = "..."')  # snake_case
+entity_key = hex(event['args']['entityKey'])  # camelCase in events
+print(entity.key)  # .key not .id
 ```
 
-### Misconception 3: "Entity IDs Are Simple Integers"
-**Reality:** Entity keys are hex strings (blockchain addresses)
+### Misconception 3: "create_entity() Returns Transaction Hash"
+**Reality:** Returns tuple (entity_key, receipt) — See "API Return Values" section for details
 
-**They expect:**
 ```python
-entity_id = 123  # Sequential integer
-entity = client.arkiv.get_entity(123)
-print(entity.id)  # Doesn't exist!
-```
-
-**Correct to:**
-```python
-entity_key = "0xabc123..."  # Hex string
-entity = client.arkiv.get_entity(entity_key)
-print(entity.key)  # Not .id, use .key
-```
-
-### Misconception 4: "create_entity() Returns Transaction Hash"
-**Reality:** Returns tuple (entity_key, receipt)
-
-**They write (old web3.py pattern):**
-```python
+# ❌ Old web3.py pattern:
 tx_hash = client.arkiv.create_entity(...)  # TypeError!
-receipt = client.eth.wait_for_transaction_receipt(tx_hash)
-```
 
-**Guide them to:**
-```python
-# create_entity() returns TUPLE
+# ✅ Unpack the tuple:
 entity_key, receipt = client.arkiv.create_entity(...)
-# Receipt is already available, transaction already confirmed
 print(f"Created: {entity_key} in block {receipt.block_number}")
-
-# update_entity() and delete_entity() return JUST receipt (not tuple)
-receipt = client.arkiv.update_entity(entity_key, ...)
-receipt = client.arkiv.delete_entity(entity_key)
 ```
 
-### Misconception 5: "Storage Is Free/Unlimited"
-**Reality:** Blockchain storage has costs and constraints
+### Misconception 4: "Storage Is Free/Unlimited"
+**Reality:** ~100KB transaction limit, gas costs, and mandatory TTL
 
-**They attempt:**
+**Key constraints:**
+- Transaction size: ~100KB total (payload + metadata)
+- Each write costs gas (reads are free)
+- Must set `expires_in` (auto-expiration prevents bloat)
+
 ```python
-# Storing images directly
+# ❌ Bad: Large files directly on-chain
 with open("photo.jpg", "rb") as f:
-    client.arkiv.create_entity(payload=f.read())  # Bad practice!
+    client.arkiv.create_entity(payload=f.read())  # May exceed 100KB!
 
-# Mass creation without gas awareness
-for i in range(10000):
-    client.arkiv.create_entity(...)  # Expensive!
-```
-
-**Recommend:**
-```python
-# Store large files off-chain (IPFS/Arweave), hash on-chain
+# ✅ Good: Store hash, files on IPFS/Arweave
 ipfs_hash = upload_to_ipfs(photo_bytes)
 entity_key, receipt = client.arkiv.create_entity(
     payload=json.dumps({"ipfs_hash": ipfs_hash}).encode(),
-    content_type="application/json",
-    expires_in=to_seconds(days=30)  # Set TTL to avoid bloat
+    expires_in=to_seconds(days=30)  # Always set TTL!
 )
-
-# Batch operations when possible
-# Consider gas costs for high-volume writes
 ```
 
-### Misconception 6: "Queries Work Like SQL"
-**Reality:** Simple attribute filters only, no JOINs/aggregations
+### Misconception 5: "Queries Work Like SQL"
+**Reality:** Simple attribute filters only (no JOINs/aggregations/GROUP BY)
 
-**They expect:**
 ```python
-# Won't work:
-entities = client.arkiv.query_entities('''
-    SELECT * FROM entities 
-    WHERE created_at > NOW() - INTERVAL '7 days'
-    GROUP BY owner
-''')
-```
+# ❌ SQL-style queries don't work:
+entities = client.arkiv.query_entities('SELECT * FROM ... GROUP BY owner')
 
-**Explain:**
-```python
-# Simple filters only:
+# ✅ Simple filters, client-side for complex logic:
 entities = client.arkiv.query_entities(
     f'$owner = "{address}" AND type = "message"'
 )
-
-# For complex queries, fetch and filter client-side:
-all_entities = list(client.arkiv.query_entities(f'$owner = "{address}"'))
-recent = [e for e in all_entities 
-          if e.created_at_block > current_block - 50400]  # ~7 days at 12s blocks
+recent = [e for e in entities if e.created_at_block > block - 50400]
 ```
 
-### Misconception 7: "I Can Update Any Entity"
-**Reality:** Can only update entities you own
+### Misconception 6: "I Can Update/Delete Any Entity + Deletion Is Permanent"
+**Reality:** Only owner can modify; blockchain history is immutable
 
-**Remind them:**
 ```python
-# Will fail if you're not the owner:
-client.arkiv.update_entity(other_users_entity_key, ...)
-# Error: "Only entity owner can update"
+# ❌ Can't modify entities you don't own:
+client.arkiv.update_entity(other_users_entity_key, ...)  # Fails!
 
-# Check ownership first:
+# ✅ Check ownership first:
 entity = client.arkiv.get_entity(entity_key)
 if entity.owner != account.address:
     print("Cannot update - you don't own this entity")
-```
 
-### Misconception 8: "Deleted Data Is Gone Forever"
-**Reality:** Blockchain history is immutable
-
-**Explain:**
-```python
-# delete_entity() removes from queries, but history remains on-chain
-client.arkiv.delete_entity(entity_key)
-# Entity won't appear in queries, but blockchain history is permanent
+# ⚠️ Deletion removes from queries, but blockchain history is permanent!
+client.arkiv.delete_entity(entity_key)  # Gone from queries, not from chain
 
 # For sensitive data, encrypt before storing:
 from cryptography.fernet import Fernet
-key = Fernet.generate_key()
-cipher = Fernet(key)
-encrypted_payload = cipher.encrypt(sensitive_data)
-client.arkiv.create_entity(payload=encrypted_payload, ...)
+encrypted = Fernet(key).encrypt(sensitive_data)
+client.arkiv.create_entity(payload=encrypted, ...)
 ```
 
-### Misconception 9: "Local Node === Production"
-**Reality:** Local node has limitations
+### Misconception 7: "Local Node === Production"
+**Reality:** Local node doesn't support all query features yet (e.g., `$content_type`)
 
-**Known issues:**
 ```python
-# May not work on local node (works in production):
+# ⚠️ May not work on local node:
 entities = client.arkiv.query_entities(
     f'$owner = "{addr}" AND $content_type = "application/json"'
 )
-# Local node doesn't support $content_type queries yet
 
-# Workaround for local development:
+# ✅ Workaround: Filter client-side
 all_entities = list(client.arkiv.query_entities(f'$owner = "{addr}"'))
 filtered = [e for e in all_entities if e.content_type == "application/json"]
 ```
 
-### Misconception 10: "Account Management Is Like Web Auth"
-**Reality:** Private keys, not passwords
+### Misconception 8: "Account Management Is Like Web Auth"
+**Reality:** Private keys, not passwords (no reset, no recovery)
 
-**Clarify:**
+**Critical warnings:**
+- ❌ No password reset / "forgot password" flow
+- ❌ Lose private key = lose access forever
+- ❌ Never commit private keys to git
+- ✅ Use `NamedAccount.create()` for local dev
+- ✅ Use env vars / key vaults for production
+
+### Misconception 9: "I Should Use Raw Contract Events"
+**Reality:** Use `client.arkiv.watch_entity_*()` methods (typed, cleaner) — See "Listening to Events" section
+
 ```python
-# NOT like traditional auth:
-# - No password reset
-# - No "forgot password" flow
-# - Lose private key = lose access forever
-# - No multi-factor auth recovery
-
-# Always use NamedAccount for local dev:
-account = NamedAccount.create("my-account")
-# For production, secure key storage is critical (env vars, key vaults)
-
-# Never commit private keys to git!
-# Never share private keys across insecure channels
-```
-
-### Misconception 11: "I Should Use Raw Contract Events"
-**Reality:** Arkiv provides high-level event watchers
-
-**What developers do (coming from web3.py):**
-```python
-# ❌ Low-level approach (works but not recommended)
-event_filter = client.arkiv.contract.events.ArkivEntityCreated.create_filter(
-    from_block="latest"
-)
+# ❌ Low-level (works but discouraged):
+event_filter = client.arkiv.contract.events.ArkivEntityCreated.create_filter(...)
 for event in event_filter.get_new_entries():
     entity_key = hex(event['args']['entityKey'])  # Manual parsing
-    owner = event['args']['ownerAddress']
-    # Process event...
-```
 
-**Guide them to:**
-```python
-# ✅ High-level convenience methods with typed callbacks
+# ✅ High-level convenience methods:
 from arkiv.types import CreateEvent, TxHash
 
 def on_entity_created(event: CreateEvent, tx_hash: TxHash) -> None:
-    print(f"Created: {event.key} by {event.owner_address}")
-    # event is typed, no manual parsing needed
+    print(f"Created: {event.key} by {event.owner_address}")  # Typed!
 
-created_watcher = client.arkiv.watch_entity_created(on_entity_created)
-# Automatic polling, typed events, easy cleanup
+client.arkiv.watch_entity_created(on_entity_created)
 ```
 
-**Benefits of convenience methods:**
-- ✅ Typed event objects (CreateEvent, UpdateEvent, etc.)
-- ✅ Automatic polling (no manual `get_new_entries()` loop)
-- ✅ Cleaner callbacks instead of dict access
-- ✅ Centralized cleanup with `client.arkiv.cleanup_filters()`
-- ✅ No camelCase confusion (event.key not event['args']['entityKey'])
-
-**Available watchers:**
-- `watch_entity_created()` → CreateEvent
-- `watch_entity_updated()` → UpdateEvent
-- `watch_entity_extended()` → ExtendEvent
-- `watch_owner_changed()` → ChangeOwnerEvent
-- `watch_entity_deleted()` → DeleteEvent (note: has type hint bug, use `# type: ignore[arg-type]`)
-
-**Only use raw contract events if:**
-- You need historical event queries with complex filters
-- You're building custom indexing logic
-- You need to listen to non-Arkiv contracts
+**Only use raw contract events for:**
+- Historical queries with complex filters
+- Custom indexing logic
+- Non-Arkiv contracts
 
 ---
 
 ## ✨ Pro Tips for AI Assistants
 
-1. **Always check the README** when uncertain - it's comprehensive and current
-2. **Use the examples as templates** - they demonstrate correct patterns
-3. **Run tests after changes** - `uv run pytest -n auto`
-4. **Check entity.payload is not None** before decoding - it's optional
-5. **Use `cast(BaseProvider, provider)` for type checking** if IDE shows errors
-6. **Remember: Python 3.12 is recommended** but 3.10-3.14 are supported
-7. **Proactively address misconceptions** - Don't wait for the developer to make mistakes
-8. **Explain blockchain constraints** - Size limits, gas costs, immutability
-9. **Show correct patterns immediately** - Wrong code followed by correct code helps learning
-10. **Prefer high-level event watchers** - Use `watch_entity_*()` methods over raw contract filters
-11. **Note the watch_entity_deleted type bug** - Always add `# type: ignore[arg-type]` when using it
-12. **Use `entity_exists()` to check existence** - Cleaner than try-except with `get_entity()`
+1. **Check SDK source code for method details** - Use `semantic_search()` to find implementation in `.venv/lib/python3.12/site-packages/arkiv/module_base.py`
+2. **SDK docstrings are source of truth** - All methods have comprehensive docs with examples
+3. **Use the examples as templates** - they demonstrate correct patterns (01→05)
+4. **Run tests after changes** - `uv run pytest -n auto`
+5. **Check entity.payload is not None** before decoding - it's optional
+6. **Use `cast(BaseProvider, provider)` for type checking** if IDE shows errors
+7. **Remember: Python 3.12 is recommended** but 3.10-3.14 are supported
+8. **Proactively address misconceptions** - Don't wait for the developer to make mistakes
+9. **Explain blockchain constraints** - Size limits, gas costs, immutability
+10. **Show correct patterns immediately** - Wrong code followed by correct code helps learning
+11. **Prefer high-level event watchers** - Use `watch_entity_*()` methods over raw contract filters
+12. **Note the watch_entity_deleted type bug** - Always add `# type: ignore[arg-type]` when using it
+13. **Use `entity_exists()` to check existence** - Cleaner than try-except with `get_entity()`
 
 ---
 
-*Last updated: 2025-11-22*
+*Last updated: 2024-11-25*
 *This file is the canonical source for AI assistant context.*
 *See also: `.cursorrules` and `docs/ai-context.md` (pointers to this file)*

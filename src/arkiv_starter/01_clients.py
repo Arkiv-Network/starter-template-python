@@ -98,7 +98,9 @@ print("   - Switch signing account dynamically")
 print("   - Useful for testing ownership transfers\n")
 
 original_account = client.eth.default_account
+original_signer = client.current_signer  # Track the current signer name
 print(f"📋 Starting with account: {original_account}")
+print(f"   Current signer name: {original_signer}")
 
 # Create and add a second account
 account_name = "second-account"
@@ -126,10 +128,14 @@ entity = client.arkiv.get_entity(entity_key3)
 print(f"✅ Entity created: {entity_key3}")
 print(f"   Owner: {entity.owner if entity else 'N/A'}\n")
 
-# Switch back to original (use account name from registry)
+# Switch back to original (use current_signer to track the name)
 print("🔄 Switching back to original account...")
-client.switch_to("default")  # Use account name, not address
-print(f"✅ Now signing with: {client.eth.default_account}\n")
+if original_signer:
+    client.switch_to(original_signer)  # Use the saved signer name
+    print(f"✅ Now signing with: {client.eth.default_account}")
+    print(f"   Current signer name: {client.current_signer}\n")
+else:
+    print("⚠️  No original signer to switch back to\n")
 
 
 print("=" * 70)
@@ -178,6 +184,7 @@ print("""
    ✅ Testing ownership transfers
    ✅ Multi-user scenarios
    ✅ Demonstrating permissions
+   💡 Use client.current_signer to track current account name
 
 5. NODE REFERENCE (client.node):
    ✅ Fund test accounts

@@ -10,7 +10,6 @@ This starter template provides everything you need to build applications with th
 - [Quick Start](#quick-start)
 - [Understanding Entities](#understanding-entities)
 - [Examples](#examples)
-- [Working with AI Assistants](#working-with-ai-assistants)
 - [Development Guide](#development-guide)
   - [Project Structure](#project-structure)
   - [Naming Conventions](#naming-conventions)
@@ -75,7 +74,7 @@ The dev container will:
 ### 3. Run Your First Example
 
 ```bash
-uv run python -m arkiv_starter.01_basic_crud
+uv run python -m arkiv_starter.01_clients
 ```
 
 You should see output like:
@@ -92,301 +91,137 @@ You should see output like:
 
 **That's it!** You're now running Arkiv locally and performing CRUD operations on-chain.
 
+### Built for AI-Assisted Development
+
+This template is designed to work seamlessly with AI coding assistants (GitHub Copilot, Cursor, Claude, etc.). It includes comprehensive context files (`.github/copilot-instructions.md`) that help AI agents understand Arkiv's conventions, common patterns, and potential pitfalls. Whether you're coding manually or with AI assistance, you'll have the guidance you need.
+
 ## Understanding Entities
 
-In Arkiv, **entities** are the fundamental units of data storage.
-Think of them as records in a database, but stored on-chain with blockchain guarantees.
+In Arkiv, **entities** are records stored on-chain with queryable attributes.
 
-### Entity Components
+### Core Components
 
-Every entity has three core components:
-
-#### 1. Payload (Content)
-The actual data you want to store on-chain.
-
-- **Type:** Raw bytes (`bytes` in Python)
-- **Format:** Can be anything—text, JSON, binary data, serialized objects
-- **Example:**
-  ```python
-  # Text data
-  payload = b"Hello, Arkiv!"
-
-  # JSON data
-  import json
-  payload = json.dumps({"name": "Alice", "age": 30}).encode()
-
-  # Binary data (e.g., small image)
-  with open("icon.png", "rb") as f:
-      payload = f.read()
-  ```
-
-#### 2. Attributes (Metadata)
-Descriptive information about the entity that enables querying and filtering.
-
-Arkiv supports two types of attributes:
-
-##### System Attributes
-System attributes are automatically managed by Arkiv and prefixed with `$` in queries:
-
-- **`$key`:** Unique entity identifier assigned on creation (automatically set)
-- **`$owner`:** Ethereum address of the entity creator (automatically set)
-- **`$content_type`:** MIME type describing the payload format (⚠️ snake_case in queries!)
-- **`$created_at` / `$updated_at`:** Blockchain block numbers tracking lifecycle (automatically set)
-- **`$expires_at`:** Block number when the entity expires (calculated from `expires_in`)
-
-⚠️ **Note:** In Python code, use `content_type` parameter (snake_case). In queries, use `$content_type` (snake_case with `$`).
-
-You **cannot** create custom attributes with the `$` prefix—these are reserved for Arkiv's internal use.
-
-##### Custom Attributes
-Custom attributes are user defined attributes that support by your specific application and enable use case specific queries:
-
-- **No `$` prefix** - Use any name without the dollar sign
-- **Examples:** `type`, `category`, `status`, `userId`, `priority`, etc.
-- **Purpose:** Enable filtering and sorting based on your business logic
-
-**Example:**
+**1. Payload** - Your actual data (bytes)
 ```python
-# Creating an entity with custom attributes 
-entity_key, receipt = client.arkiv.create_entity(
-    payload = b"User profile data",
-    content_type = "application/json",
-    expires_in = client.arkiv.to_seconds(days=3),
-    attributes={
-        "type": "user_profile", # Custom attribute
-        "userId": "alice123",   # Custom attribute
-        "status": "active".     # Custom attribute
-    }
-)
- 
-# Querying by Arkiv-controlled attributes (query syntax uses $content_type)
-entities = list(client.arkiv.query_entities(
-    f'$owner = "0x1234..." AND $content_type = "application/json"'  # Query: snake_case with $
-))
-
-# Querying by custom attributes
-entities = list(client.arkiv.query_entities(
-    'type = "user_profile" AND status = "active"'
-))
+payload = b"Hello, Arkiv!"  # Text
+payload = json.dumps({"name": "Alice"}).encode()  # JSON
 ```
 
-#### 3. Expires In (TTL - Time To Live)
-How long the entity should persist on-chain before automatic expiration.
+**2. Attributes** - Metadata for querying
+- **System attributes** (auto-managed, prefixed with `$` in queries): `$key`, `$owner`, `$content_type`, `$created_at`, `$expires_at`
+- **Custom attributes** (your metadata, no `$`): `type`, `status`, `userId`, etc.
 
-- **Type:** Duration in seconds
-- **Purpose:** Optimize blockchain storage and costs
-- **Behavior:** After expiration, the entity is automatically removed
-- **Default:** No default, needs to be set explicitly by user
-- **Example:**
-  ```python
-  from arkiv import to_seconds # Arkiv time utility
+```python
+# Create with custom attributes
+entity_key, receipt = client.arkiv.create_entity(
+    payload=b"data",
+    content_type="application/json",  # Python: snake_case
+    expires_in=to_seconds(days=7),
+    attributes={"type": "profile", "status": "active"}  # Custom
+)
 
-  # Short-lived data (1 hour)
-  client.arkiv.create_entity(payload=data, expires_in=to_seconds(hours=1))
+# Query using system attributes (with $)
+entities = client.arkiv.query_entities(
+    f'$owner = "{address}" AND $content_type = "application/json"'  # Query: $snake_case
+)
 
-  # Longer storage (2 months)
-  client.arkiv.create_entity(payload=data, expires_in=to_seconds(days=60))
+# Query using custom attributes (no $)
+entities = client.arkiv.query_entities('type = "profile" AND status = "active"')
+```
 
-  # Combine time units
-  client.arkiv.create_entity(
-      payload=data,
-      expires_in=to_seconds(hours=2, minutes=30)  # 2.5 hours
-  )
-  ```
-
-### Why These Components Matter
-
-- **Payload:** Your actual data, flexible and unopinionated
-- **Attributes:** Enable powerful queries without indexing off-chain
-- **Expires In:** Keeps blockchain lean and costs predictable
-
-This design gives you the flexibility of a document database with the immutability and transparency of blockchain storage.
+**3. Expires In** - TTL in seconds (required)
+```python
+expires_in=to_seconds(hours=1)      # Short-lived
+expires_in=to_seconds(days=30)      # Longer storage
+expires_in=to_seconds(hours=2, minutes=30)  # Combined
+```
 
 ### Transaction Size Limits
 
-Arkiv operations are blockchain transactions, and the **maximum transaction size** is determined by the underlying blockchain network (currently around **120KB** for the entire transaction).
+⚠️ **Maximum transaction size: ~100KB** (payload + attributes + metadata)
 
-This limit applies to the **complete transaction data**, which includes:
-- Entity payload(s)
-- All entity attributes (both system and custom)
-- Transaction metadata (signatures, gas data, etc.)
-- Multiple entities if you're creating/updating several in one transaction
+**Safe limits:**
+- Single entity: ~90KB payload
+- Multiple entities: Total size must fit in 100KB
+- Many attributes reduce available payload space
 
-**Practical guidelines:**
-- Single entity with large payload: ~90KB payload is safe (leaves room for attributes and metadata)
-- Multiple entities in one transaction: Total size of all payloads + attributes must fit within limit
-- Rich attributes: Many custom attributes reduce available space for payload
-- Batch operations: Consider transaction size when batching multiple entity modifications
-
-**Example:**
-```python
-# This is fine - single entity with reasonable payload
-entity_key, receipt = client.arkiv.create_entity(
-    payload=json.dumps({"data": "..." * 1000}).encode(),  # ~80KB
-    attributes={"type": "large_document"}
-)
-
-# This may fail - total size exceeds transaction limit
-# (payload + attributes + metadata > 100KB)
-large_payload = b"x" * 95000  # 95KB payload
-many_attributes = {f"attr_{i}": f"value_{i}" for i in range(1000)}
-entity_key, receipt = client.arkiv.create_entity(
-    payload=large_payload,
-    attributes=many_attributes  # Too much data!
-)
-```
+For larger files, store on IPFS/Arweave and save the hash in Arkiv.
 
 ## Examples
 
-The template includes 4 progressive tutorials, each building on the previous:
-
-1. Basic Arkiv CRUD operations
-2. Querying entities
-3. Real-time entity events
-4. Web3 integration
+The template includes **5 progressive tutorials**, each building on the previous:
 
 Each example:
-- Starts a local Arkiv node, running in a container without external dependencies
-- Creates and funds a test account
+- Starts a local Arkiv node in Docker (no external dependencies)
+- Creates and funds test accounts
 - Demonstrates specific features
-- Cleans up automatically and stops the local node when done
+- Cleans up automatically
 
-All examples are self-contained and can run independently as modules: `uv run python -m arkiv_starter.01_basic_crud`
+### Example 1: Client Initialization (5 min)
+**File:** `src/arkiv_starter/01_clients.py`
 
-### Example 1: Arkiv CRUD Operations (5 min)
-**File:** `01_basic_crud.py`
+Learn different ways to initialize the Arkiv client:
+- Default client (simplest)
+- Custom provider (specific RPC endpoints)
+- Custom account (specific private keys)
+- Multiple accounts with `switch_to()`
+- Node reference for utilities
 
-Learn the fundamentals:
-- Creating entities (storing data on-chain)
-- Reading entities by ID
-- Updating existing entities
-- Deleting entities
-
-**Run it:**
 ```bash
-uv run python -m arkiv_starter.01_basic_crud
+uv run python -m arkiv_starter.01_clients
 ```
 
-### Example 2: Querying Entities (5 min)
-**File:** `02_queries.py`
+### Example 2: Entity CRUD Operations (5 min)
+**File:** `src/arkiv_starter/02_entity_crud.py`
 
-Master data retrieval:
+Master entity lifecycle:
+- Create entities (store data on-chain)
+- Read entities by key
+- Update entities
+- Extend entity lifetime
+- Change ownership
+- Delete entities
+
+```bash
+uv run python -m arkiv_starter.02_entity_crud
+```
+
+### Example 3: Querying Entities (5 min)
+**File:** `src/arkiv_starter/03_queries.py`
+
+Data retrieval and filtering:
 - Query by owner
-- Filter by content type
-- Sort results
-- Paginate large result sets
+- Filter by content type and custom attributes
+- Combine conditions
+- Pagination
 
-**Run it:**
 ```bash
-uv run python -m arkiv_starter.02_queries
+uv run python -m arkiv_starter.03_queries
 ```
 
-### Example 3: Real-Time Events (10 min)
-**File:** `03_events.py`
+### Example 4: Real-Time Events (10 min)
+**File:** `src/arkiv_starter/04_events.py`
 
-Real-time data monitoring:
-- Subscribe to entity lifecycle events
-- Process event data
-- Query historical events
+Monitor blockchain events:
+- Watch entity lifecycle events (created, updated, deleted)
+- Typed event callbacks
+- Account switching for ownership changes
 
-**Run it:**
 ```bash
-uv run python -m arkiv_starter.03_events
+uv run python -m arkiv_starter.04_events
 ```
 
-### Example 4: Web3 Integration (10 min)
-**File:** `04_web3_integration.py`
+### Example 5: Web3 Integration (5 min)
+**File:** `src/arkiv_starter/05_web3_integration.py`
 
-Advanced usage:
-- Mix Arkiv with standard web3.py calls
-- Direct contract interaction
-- Manual transaction signing
-- Full control when you need it
+Combine Arkiv with standard Web3 operations:
+- Access block data and balances
+- Mix Arkiv entity operations with Web3 calls
+- Get transaction metadata
 
-**Run it:**
 ```bash
-uv run python -m arkiv_starter.04_web3_integration
+uv run python -m arkiv_starter.05_web3_integration
 ```
-
----
-
-## Working with AI Assistants
-
-This template is designed to work seamlessly with AI coding assistants like **GitHub Copilot**, **Claude**, and **ChatGPT**.
-
-### 🤖 For AI Agents: Critical Context
-
-If you're an AI assistant helping with this codebase, prioritize these facts:
-
-**1. Naming Conventions (Most Common Mistake)**
-
-| Context | Convention | Examples |
-|---------|-----------|----------|
-| **Python SDK** | snake_case | `entity_key`, `content_type`, `from_block`, `expires_in` |
-| **Query Syntax** | snake_case with `$` | `$owner`, `$content_type`, `$created_at` |
-| **Contract Events** | camelCase | `entityKey`, `ownerAddress`, `expirationBlock` |
-| **Entity Attributes** | snake_case | `entity.key`, `entity.payload`, `entity.expires_at_block` |
-
-**2. API Return Values**
-```python
-# create_entity returns a TUPLE:
-entity_key, receipt = client.arkiv.create_entity(...)
-
-# update/delete return just receipt:
-receipt = client.arkiv.update_entity(...)
-receipt = client.arkiv.delete_entity(...)
-```
-
-**3. Current API (Not Old Versions)**
-```python
-# ✅ CORRECT (current API)
-from arkiv import Arkiv, NamedAccount
-from arkiv.provider import ProviderBuilder  # Singular: provider
-
-account = NamedAccount.create("name")  # Not Account.create()
-entity.key      # Not entity.id
-entity.payload  # Not entity.content
-event['args']['entityKey']  # camelCase in events
-```
-
-**4. Module Structure**
-- Examples live in `src/arkiv_starter/` (not `examples/`)
-- Run as modules: `uv run python -m arkiv_starter.01_basic_crud`
-- Python 3.12 recommended (supports 3.10-3.14)
-
-**Common AI Mistakes to Avoid:**
-
-❌ **Wrong:**
-```python
-# Mixing camelCase in queries
-f'$contentType = "text/plain"'  # WRONG
-event['args']['entity_key']     # WRONG
-entity.id                        # WRONG
-```
-
-✅ **Correct:**
-```python
-# Use snake_case in queries
-f'$content_type = "text/plain"'  # CORRECT
-hex(event['args']['entityKey'])  # CORRECT (camelCase in events)
-entity.key                        # CORRECT
-```
-
-**When in doubt, check [API_REFERENCE.md](API_REFERENCE.md) first.**
-
-### 💬 Using GitHub Copilot
-
-This template is optimized for interactive AI assistance:
-
-- 📝 **Well-commented examples** - Clear patterns for learning
-- 🎯 **Focused code** - Each example teaches specific concepts
-- 💬 **Natural language prompts** - Ask Copilot to help
-
-**Try asking Copilot:**
-- "Create an entity that stores JSON data"
-- "Query entities by owner and content_type"
-- "Listen to ArkivEntityCreated events and extract the entityKey"
-- "Update an entity's payload and wait for confirmation"
 
 ---
 
@@ -400,14 +235,16 @@ This template follows the **src-layout** pattern (modern Python standard):
 arkiv-python-starter/
 ├── src/
 │   └── arkiv_starter/          # Your application code
-│       ├── 01_basic_crud.py
-│       ├── 02_queries.py
-│       ├── 03_events.py
-│       └── 04_web3_integration.py
+│       ├── 01_clients.py
+│       ├── 02_entity_crud.py
+│       ├── 03_queries.py
+│       ├── 04_events.py
+│       └── 05_web3_integration.py
 ├── tests/                      # Test files
 │   ├── conftest.py
-│   ├── test_01_basic_crud.py
-│   └── test_02_queries.py
+│   ├── test_01_clients.py
+│   ├── test_02_entity_crud.py
+│   └── test_03_queries.py
 ├── .devcontainer/              # Dev container config
 ├── .vscode/                    # VS Code settings
 ├── pyproject.toml              # Dependencies & tools
@@ -473,7 +310,7 @@ print(entity.created_at_block)
 - Query syntax prioritizes readability and SQL-like familiarity
 - Contract events follow Solidity conventions (cannot be changed)
 
-See [API_REFERENCE.md](API_REFERENCE.md#️-important-naming-conventions) for complete details.
+See `.github/copilot-instructions.md` for complete naming convention details and common pitfalls.
 
 ### Common Tasks
 
@@ -660,7 +497,7 @@ To use Mendoza testnet, you need test tokens:
 
 - 🐍 [Arkiv Getting Started](hhttps://arkiv.network/getting-started/python)
 - 🐍 [Arkiv SDK for Python on Github](https://github.com/Arkiv-Network/arkiv-sdk-python)
-- 📖 [API_REFERENCE.md](API_REFERENCE.md) - Local API reference with examples
+- 📖 SDK Source Code - Check `.venv/lib/python3.12/site-packages/arkiv/module_base.py` for method documentation
 - 💬 [Discord Community](https://discord.gg/arkiv) - Get help and share projects
 - 🐦 [Twitter/X](https://twitter.com/ArkivNetwork) - Latest updates and announcements
 

@@ -77,6 +77,8 @@ def test_multiple_accounts_switch_to(arkiv_node):
     client = Arkiv(provider, account=account)
     
     original_account = client.eth.default_account
+    original_signer = client.current_signer  # Track original account name
+    assert original_signer is not None
     
     # Create and add second account
     second_account = NamedAccount.create("test-second-account")
@@ -91,6 +93,7 @@ def test_multiple_accounts_switch_to(arkiv_node):
     # Switch to second account
     client.switch_to("second-account")
     assert client.eth.default_account == second_account.address
+    assert client.current_signer == "second-account"
     
     # Create entity with second account
     entity_key, receipt = client.arkiv.create_entity(
@@ -104,12 +107,10 @@ def test_multiple_accounts_switch_to(arkiv_node):
     assert entity is not None
     assert entity.owner == second_account.address
     
-    # Switch back to original (need to find the key)
-    for name, acc in client.accounts.items():
-        if acc.address == original_account:
-            client.switch_to(name)
-            break
+    # Switch back to original using tracked signer name
+    client.switch_to(original_signer)
     assert client.eth.default_account == original_account
+    assert client.current_signer == original_signer
 
 
 def test_node_reference():

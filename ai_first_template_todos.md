@@ -29,14 +29,25 @@ Quick reference for enhancing this starter repo for AI-assisted development.
 
 ## 📚 Documentation Improvements
 
-### 4. Consolidate API_REFERENCE.md
+### 4. ✅ API_REFERENCE.md Removed
 
-**Current issue:** 90% overlap with README creates maintenance burden
+**Decision:** Deleted to avoid documentation drift
 
-**Options:**
-- **A)** Merge into README, keep API_REFERENCE as pure method signatures only
-- **B)** Keep API_REFERENCE comprehensive, make README a quickstart only
-- **Recommended:** Option A - developers expect README to be comprehensive
+**Rationale:**
+- SDK has comprehensive docstrings in `module_base.py` for all methods
+- Duplicating method docs creates maintenance burden
+- AI can read SDK source directly via `semantic_search()`
+- Examples (01→05) demonstrate all patterns
+
+**Unique Content to Integrate Later:**
+- Naming conventions table (Python/Query/Events) → Add to README.md
+- Query syntax with system attributes (`$owner`, `$content_type`) → Add to README.md or copilot-instructions.md
+- Event handling patterns (camelCase in events) → Already covered in copilot-instructions.md
+
+**Action Items:**
+- [ ] Add naming conventions quick reference table to README
+- [ ] Add query syntax section to README (system attributes)
+- [ ] Ensure copilot-instructions.md covers event naming
 
 ### 5. Add "Next Steps" Comments to Examples
 
@@ -60,40 +71,6 @@ Add to README:
 | Get one item | `get_entity()` | `client.arkiv.get_entity(entity_key)` |
 | Search/filter | `query_entities()` | `client.arkiv.query_entities('$owner = "0x..."')` |
 | Watch changes | `watch_entity_created()` | `client.arkiv.watch_entity_created(callback)` |
-```
-
----
-
-## 🧪 Testing Enhancements
-
-### 7. Add Tests for Remaining Examples
-
-**Currently tested:** 01_basic_crud, 02_queries, utilities
-
-**Missing:**
-- `test_03_events.py` - Event watching patterns
-- `test_04_web3_integration.py` - Direct contract interaction
-
-**Note:** Current tests are actually good examples! They show:
-- Time conversion utilities
-- Entity existence checks
-- Extension patterns
-- Field mask usage
-
-### 8. Test for Common Mistakes
-
-Add tests that catch typical errors:
-```python
-def test_content_type_in_query():
-    """Ensure snake_case used in queries (common AI mistake)."""
-    # Should use $content_type not $contentType
-    result = client.arkiv.query_entities('$content_type = "text/plain"')
-    assert len(list(result)) >= 0  # Should not raise error
-
-def test_event_arg_naming():
-    """Document that event args use camelCase."""
-    # This test is documentation for AI
-    pass
 ```
 
 ---
@@ -139,7 +116,7 @@ from arkiv import Arkiv
 
 ## 🎨 Visual/Media
 
-### 11. Demo GIF or Video
+### 11. Demo Video
 
 - **README.md**: Embed 60-second demo showing repo → run → output
 - AI can't create this but can prompt maintainer to add it
@@ -181,9 +158,8 @@ Add to README or separate `TROUBLESHOOTING.md`:
 | 🔴 HIGH | Medium | High | #3 - Mini Chat Example |
 | 🟡 MEDIUM | Low | Medium | #5 - "Next Steps" Comments |
 | 🟡 MEDIUM | Low | Medium | #6 - Quick Reference Table |
-| 🟡 MEDIUM | Medium | Medium | #4 - Consolidate API_REFERENCE |
 | 🟢 LOW | Medium | Low | #9 - Patterns Library |
-| 🟢 LOW | High | Medium | #11 - Demo GIF |
+| 🟢 LOW | High | Medium | #11 - Demo Video |
 
 ---
 
@@ -198,7 +174,7 @@ Add to README or separate `TROUBLESHOOTING.md`:
 5. Add Quick Reference table to README (1 hour)
 
 **Week 3 (Polish):**
-6. Consolidate API_REFERENCE.md (2 hours)
+6. Integrate unique API_REFERENCE content to README (1 hour)
 7. Add troubleshooting section (1 hour)
 
 **Ongoing:**

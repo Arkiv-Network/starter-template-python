@@ -104,17 +104,21 @@ receipt = client.arkiv.extend_entity(entity_key, extend_by=seconds)
 print(f"     Extended entity: {entity_key}")
 
 print("4️⃣  Operation 4: Changing entity owner...")
+original_signer = client.current_signer  # Track original account name
 account_name = "new-owner"
 new_account = NamedAccount.create(account_name)
 receipt = client.arkiv.change_owner(entity_key, new_account.address)
-print(f"     Changed owner of entity: {entity_key} to {new_account.address} ")
+print(f"     Changed owner of entity: {entity_key} to {new_account.address}")
+print(f"     Original signer: {original_signer}")
 
 print("5️⃣  Operation 5: Deleting entity (as new owner)...")
 node = client.node
 assert node is not None
 node.fund_account(new_account)  # Fund the new account
-client.accounts[account_name] = new_account # Add to client accounts
-client.switch_to(account_name) # Switch signing account to new owner
+client.accounts[account_name] = new_account  # Add to client accounts
+print(f"     Switching from '{client.current_signer}' to '{account_name}' account...")
+client.switch_to(account_name)  # Switch signing account to new owner
+print(f"     Current signer: {client.current_signer}")
 receipt = client.arkiv.delete_entity(entity_key)
 print(f"     Deleted entity: {entity_key}")
 
