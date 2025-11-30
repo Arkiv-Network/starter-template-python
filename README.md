@@ -190,7 +190,7 @@ For larger files, store on IPFS/Arweave and save the hash in Arkiv.
 
 ## Examples
 
-The template includes **5 progressive tutorials**, each building on the previous:
+The template includes **8 progressive tutorials**, each building on the previous:
 
 Each example:
 - Starts a local Arkiv node in Docker (no external dependencies)
@@ -198,8 +198,30 @@ Each example:
 - Demonstrates specific features
 - Cleans up automatically
 
-### Example 1: Client Initialization (5 min)
-**File:** `src/arkiv_starter/01_clients.py`
+### Example 1: Hello World (2 min)
+**File:** `src/arkiv_starter/01_hello_world.py`
+
+Your first Arkiv program - store and retrieve data in 15 lines:
+
+```bash
+uv run python -m arkiv_starter.01_hello_world
+```
+
+### Example 2: Account Management (5 min)
+**File:** `src/arkiv_starter/02_accounts.py`
+
+Learn secure account handling:
+- Create new accounts (in-memory)
+- Load from private keys
+- Load from mnemonic phrases
+- Save/load encrypted wallet files
+
+```bash
+uv run python -m arkiv_starter.02_accounts
+```
+
+### Example 3: Client Initialization (5 min)
+**File:** `src/arkiv_starter/03_clients.py`
 
 Learn different ways to initialize the Arkiv client:
 - Default client (simplest)
@@ -209,11 +231,11 @@ Learn different ways to initialize the Arkiv client:
 - Node reference for utilities
 
 ```bash
-uv run python -m arkiv_starter.01_clients
+uv run python -m arkiv_starter.03_clients
 ```
 
-### Example 2: Entity CRUD Operations (5 min)
-**File:** `src/arkiv_starter/02_entity_crud.py`
+### Example 4: Entity CRUD Operations (5 min)
+**File:** `src/arkiv_starter/04_entity_crud.py`
 
 Master entity lifecycle:
 - Create entities (store data on-chain)
@@ -224,11 +246,11 @@ Master entity lifecycle:
 - Delete entities
 
 ```bash
-uv run python -m arkiv_starter.02_entity_crud
+uv run python -m arkiv_starter.04_entity_crud
 ```
 
-### Example 3: Querying Entities (5 min)
-**File:** `src/arkiv_starter/03_queries.py`
+### Example 5: Querying Entities (5 min)
+**File:** `src/arkiv_starter/05_queries.py`
 
 Data retrieval and filtering:
 - Query by owner
@@ -237,11 +259,11 @@ Data retrieval and filtering:
 - Pagination
 
 ```bash
-uv run python -m arkiv_starter.03_queries
+uv run python -m arkiv_starter.05_queries
 ```
 
-### Example 4: Real-Time Events (10 min)
-**File:** `src/arkiv_starter/04_events.py`
+### Example 6: Real-Time Events (10 min)
+**File:** `src/arkiv_starter/06_events.py`
 
 Monitor blockchain events:
 - Watch entity lifecycle events (created, updated, deleted)
@@ -249,11 +271,36 @@ Monitor blockchain events:
 - Account switching for ownership changes
 
 ```bash
-uv run python -m arkiv_starter.04_events
+uv run python -m arkiv_starter.06_events
 ```
 
-### Example 5: Web3 Integration (5 min)
-**File:** `src/arkiv_starter/05_web3_integration.py`
+### Example 7: Multi-Client Pattern (15 min)
+**File:** `src/arkiv_starter/07_agents.py`
+
+Build multi-user/agent applications:
+- **Chain mode**: Run a local blockchain with interactive faucet
+- **Client mode**: Connect clients to a shared chain
+- **Demo mode**: See multiple clients messaging each other
+
+This is the foundation for chat apps, social media, multiplayer games, etc.
+
+```bash
+# Run the demo (all-in-one)
+uv run python -m arkiv_starter.07_agents demo
+
+# Or run separately:
+# Terminal 1: Start the chain
+uv run python -m arkiv_starter.07_agents chain
+
+# Terminal 2: Connect as Alice
+uv run python -m arkiv_starter.07_agents client http://127.0.0.1:8545 alice
+
+# Terminal 3: Connect as Bob
+uv run python -m arkiv_starter.07_agents client http://127.0.0.1:8545 bob
+```
+
+### Example 8: Web3 Integration (5 min)
+**File:** `src/arkiv_starter/08_web3_integration.py`
 
 Combine Arkiv with standard Web3 operations:
 - Access block data and balances
@@ -261,7 +308,7 @@ Combine Arkiv with standard Web3 operations:
 - Get transaction metadata
 
 ```bash
-uv run python -m arkiv_starter.05_web3_integration
+uv run python -m arkiv_starter.08_web3_integration
 ```
 
 ---
@@ -275,17 +322,20 @@ This template follows the **src-layout** pattern (modern Python standard):
 ```
 arkiv-python-starter/
 ├── src/
-│   └── arkiv_starter/          # Your application code
-│       ├── 01_clients.py
-│       ├── 02_entity_crud.py
-│       ├── 03_queries.py
-│       ├── 04_events.py
-│       └── 05_web3_integration.py
+│   └── arkiv_starter/          # Examle code 
+│       ├── 01_hello_world.py
+│       ├── 02_accounts.py
+│       ├── 03_clients.py
+│       ├── 04_entity_crud.py
+│       ├── 05_queries.py
+│       ├── 06_events.py
+│       ├── 07_agents.py
+│       └── 08_web3_integration.py
 ├── tests/                      # Test files
 │   ├── conftest.py
-│   ├── test_01_clients.py
-│   ├── test_02_entity_crud.py
-│   └── test_03_queries.py
+│   ├── test_03_clients.py
+│   ├── test_04_entity_crud.py
+│   └── test_05_queries.py
 ├── .devcontainer/              # Dev container config
 ├── .vscode/                    # VS Code settings
 ├── pyproject.toml              # Dependencies & tools

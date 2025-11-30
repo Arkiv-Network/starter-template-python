@@ -19,6 +19,19 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 - 🤝 **Collaborative Tools** - Real-time editing/voting
 - ⚠️ **If users in different terminals/processes need to see each other's data = MULTI-USER**
 
+**📁 MANDATORY: Study `07_agents.py` BEFORE building multi-user apps!**
+```bash
+# Read the reference implementation first:
+cat src/arkiv_starter/07_agents.py
+
+# Run it to understand how it works:
+uv run python -m arkiv_starter.07_agents demo
+```
+This file contains the **canonical patterns** for multi-user apps:
+- `ArkivChain` class → Server pattern (runs shared blockchain node)
+- `Client` class → Client pattern (connects to shared node)
+- `run_demo()` → Shows how multiple clients interact on same chain
+
 **Single-User = Can Use Simple Pattern:**
 - 📊 **Personal Storage** - One user's data
 - 🤖 **Automation/Bots** - Scripts run alone
@@ -26,7 +39,7 @@ This file provides context for AI coding tools (GitHub Copilot, Cursor, Aider, G
 - 🎯 **Single-Player Games** - No interaction between processes
 
 **Critical Rule for AI Assistants:**
-When user says "chat", "social", "multiplayer", "collaborative" → **IGNORE** any request for "simple" or "single file" → **MUST ask the user to confirm to use server + client pattern**. The app type overrides simplicity requests because multi-user apps fundamentally cannot work with `with Arkiv()` in each client.
+When user says "chat", "social", "multiplayer", "collaborative" → **STOP** → **Read `07_agents.py` first** → Use that as your template. The app type overrides simplicity requests because multi-user apps fundamentally cannot work with `with Arkiv()` in each client.
 
 ---
 
@@ -48,9 +61,10 @@ When user says "chat", "social", "multiplayer", "collaborative" → **IGNORE** a
 - ✅ `NamedAccount.create(name)` → for local dev (not Account.create())
 
 **Multi-user interactive apps (chat/social/gaming):**
-- ✅ **Server + Client pattern** → server.py runs ONE node, demo.py connects via HTTP
-- ✅ Clients use `HTTPProvider("http://127.0.0.1:8545")` to connect to shared server
-- ❌ **NEVER** `with Arkiv()` in multi-user demo.py (creates separate blockchains per terminal!)
+- 📁 **FIRST: Read `src/arkiv_starter/07_agents.py`** - This is your template!
+- ✅ **Server + Client pattern** → Copy `ArkivChain` for server, `Client` for clients
+- ✅ Clients use `ProviderBuilder().custom(url=rpc_url).build()` to connect to shared server
+- ❌ **NEVER** `with Arkiv()` in multi-user client code (creates separate blockchains!)
 - ❌ **NEVER** let "simple" override multi-user requirement (won't work at all!)
 
 **Time conversion (methods, not imports):**
@@ -75,7 +89,7 @@ When user says "chat", "social", "multiplayer", "collaborative" → **IGNORE** a
 - ❌ DON'T call `configure_python_environment` - it's automatic
 - ✅ Just run: `uv run python -m app.demo` or `uv run pytest`
 
-**Run examples:** `uv run python -m arkiv_starter.01_clients` (etc., 01-05)
+**Run examples:** `uv run python -m arkiv_starter.03_clients` (etc., 01-08)
 
 ---
 
@@ -493,11 +507,11 @@ account = Account.create()  # LocalAccount won't work with node.fund_account()
 ```python
 # ✅ CORRECT - When you have an account object
 print(account.address)       # Ethereum address
-print(account.private_key)   # Private key for signing
+print(account.key)           # Private key for signing (bytes)
 print(account.name)          # Account name (NamedAccount only)
 
 # ❌ WRONG
-print(account.key)  # Use account.private_key instead
+print(account.private_key)  # Use account.key instead
 ```
 
 ### Accessing the Current Account from Client
@@ -564,11 +578,14 @@ client2 = Arkiv(provider, account=account2)  # Wasteful
 
 ```bash
 # ✅ CORRECT - Run as modules
-uv run python -m arkiv_starter.01_clients
-uv run python -m arkiv_starter.02_entity_crud
-uv run python -m arkiv_starter.03_queries
-uv run python -m arkiv_starter.04_events
-uv run python -m arkiv_starter.05_web3_integration
+uv run python -m arkiv_starter.01_hello_world
+uv run python -m arkiv_starter.02_accounts
+uv run python -m arkiv_starter.03_clients
+uv run python -m arkiv_starter.04_entity_crud
+uv run python -m arkiv_starter.05_queries
+uv run python -m arkiv_starter.06_events
+uv run python -m arkiv_starter.07_agents
+uv run python -m arkiv_starter.08_web3_integration
 
 # ✅ CORRECT - Run tests
 uv run pytest
@@ -898,7 +915,7 @@ from arkiv import to_seconds, to_blocks  # ImportError!
   - `module_base.py`: All method signatures with detailed docstrings
   - Use `semantic_search("method_name implementation")` to find SDK code
   - SDK docstrings are the source of truth for parameters, return types, and behavior
-- **examples/**: 5 progressive tutorials (01→05)
+- **src/arkiv_starter/**: 8 progressive tutorials (01→08)
 - **tests/**: Working test patterns to learn from
 
 ---
@@ -1166,7 +1183,7 @@ client.arkiv.watch_entity_created(on_entity_created)
 
 1. **Check SDK source code for method details** - Use `semantic_search()` to find implementation in `.venv/lib/python3.12/site-packages/arkiv/module_base.py`
 2. **SDK docstrings are source of truth** - All methods have comprehensive docs with examples
-3. **Use the examples as templates** - they demonstrate correct patterns (01→05)
+3. **Use the examples as templates** - they demonstrate correct patterns (01→08)
 4. **Run tests after changes** - `uv run pytest -n auto`
 5. **Check entity.payload is not None** before decoding - it's optional
 6. **Use `cast(BaseProvider, provider)` for type checking** if IDE shows errors
@@ -1420,12 +1437,29 @@ def test_retrieve_entities(arkiv_client):
 
 ### 🚨 CRITICAL: Multi-User Interactive Applications (Social, Gaming, etc.)
 
-**⚠️ STOP AND READ THIS FIRST** if you're building:
+**⚠️ STOP AND READ `07_agents.py` FIRST** if you're building:
 - Any app where multiple independent users interact in real-time
 - Social media/messaging apps  
 - Multiplayer games
 
-**The Problem:**
+**📁 MANDATORY: Use `src/arkiv_starter/07_agents.py` as your template!**
+
+```bash
+# Step 1: Read the reference implementation
+cat src/arkiv_starter/07_agents.py
+
+# Step 2: Run it to see how it works
+uv run python -m arkiv_starter.07_agents demo
+
+# Step 3: Copy patterns from 07_agents.py into your app
+```
+
+**Key classes to copy from `07_agents.py`:**
+- `ArkivChain` → Your server (runs ONE shared blockchain node)
+- `Client` → Your client (connects to shared node via RPC URL)
+- `run_demo()` → Shows complete multi-client interaction
+
+**The Problem (why you MUST use the 07_agents.py pattern):**
 When you run a demo script like `python -m app.demo` in multiple terminals, each creates its **own separate blockchain**. Users can't see each other!
 
 ❌ **WRONG - Separate Blockchains (Most Common Mistake):**
@@ -1462,128 +1496,43 @@ $ uv run python -m app.demo
 - Tests work fine (shared fixtures), but real demo breaks
 - This is THE #1 mistake for multi-user interactive apps
 
-✅ **CORRECT Solution: Server + Client Architecture**
+✅ **CORRECT Solution: Server + Client Architecture (See `07_agents.py`)**
+
+**📁 The canonical implementation is in `src/arkiv_starter/07_agents.py`.**
 
 For interactive multi-user apps, you need **TWO types of scripts**:
 
-#### 1. **Server Script** - Runs the shared node (one instance only)
+1. **Server Script** (`ArkivChain` class in `07_agents.py`) - Runs the shared node
+2. **Client Script** (`Client` class in `07_agents.py`) - Connects to the shared node
 
-```python
-# src/app/server.py
-"""Arkiv app server - Run this ONCE to start the shared blockchain node."""
+```bash
+# Study the reference implementation:
+cat src/arkiv_starter/07_agents.py
 
-import time
-from arkiv import Arkiv
-
-def main():
-    print("🚀 Starting Arkiv App Server...")
-    print("📡 Server running on http://127.0.0.1:8545")
-    print("💡 Keep this running while users interact")
-    print("⏹️  Press Ctrl+C to stop\n")
-    
-    with Arkiv() as client:
-        node = client.node
-        assert node is not None
-        
-        print(f"✅ Server ready! RPC endpoint: {node.rpc_url}")
-        print(f"📊 Network ID: {client.eth.chain_id}\n")
-        
-        try:
-            # Keep server running
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\n\n🛑 Shutting down server...")
-    
-    print("✅ Server stopped.\n")
-
-if __name__ == "__main__":
-    main()
+# Run it to see server + client in action:
+uv run python -m arkiv_starter.07_agents demo
 ```
 
-#### 2. **Client Demo Script** - Connects to the shared node
+**Key patterns from `07_agents.py`:**
 
 ```python
-# src/app/demo.py
-"""Arkiv app client - Run multiple instances to interact together."""
+# SERVER: Create ONE shared blockchain node
+class ArkivChain:
+    def __init__(self):
+        self._client = Arkiv()
+        self._node = self._client.node
+        # Node exposes: self._node.rpc_url (default: http://127.0.0.1:8545)
 
-import time
-from typing import cast
-from web3 import Web3
-from web3.providers import HTTPProvider
-from web3.providers.base import BaseProvider
-from arkiv import Arkiv, NamedAccount
-
-def main():
-    print("\n🎉 Welcome to Arkiv App! 🎉\n")
-    
-    # Get username
-    username = input("Enter your username: ").strip()
-    if not username:
-        username = "Anonymous"
-    
-    print(f"\n📡 Connecting to Arkiv server at http://127.0.0.1:8545...")
-    
-    # Connect to shared server
-    provider = cast(BaseProvider, HTTPProvider("http://127.0.0.1:8545"))
-    
-    # Create account for this user
-    account = NamedAccount.create(username.lower().replace(" ", "-"))
-    
-    # Initialize client connected to shared blockchain
-    client = Arkiv(provider=provider, account=account)
-    
-    # Fund account (server must be running!)
-    try:
-        # Check if we can connect
-        client.eth.chain_id
-        print("✅ Connected to server!")
-    except Exception as e:
-        print(f"❌ Cannot connect to server. Is it running?")
-        print(f"   Start server with: uv run python -m app.server")
-        return
-    
-    print(f"\n✅ Connected as {username}...")
-    print("⌨️  Interact with the app, '/quit' to exit\n")
-    
-    # Create your app client
-    from app.client import AppClient
-    app = AppClient(client, username=username)
-    
-    # Your app-specific initialization
-    # Example: Load recent data, set up event watchers, etc.
-    app.initialize()
-    time.sleep(0.2)
-    
-    # Interactive loop
-    try:
-        while True:
-            user_input = input("> ").strip()
-            
-            if not user_input:
-                continue
-            
-            if user_input.lower() == "/quit":
-                print("\n👋 Goodbye!")
-                break
-            
-            # Your app-specific command handling
-            try:
-                app.handle_command(user_input)
-            except Exception as e:
-                print(f"❌ Error: {e}")
-    
-    except KeyboardInterrupt:
-        print("\n\n👋 Interrupted. Goodbye!")
-    
-    finally:
-        app.cleanup()
-    
-    print("✅ Disconnected.\n")
-
-if __name__ == "__main__":
-    main()
+# CLIENT: Connect to shared node via RPC URL
+class Client:
+    def __init__(self, name: str, rpc_url: str = DEFAULT_RPC_URL):
+        provider = cast(BaseProvider, ProviderBuilder().custom(url=rpc_url).build())
+        self._account = NamedAccount.create(name)
+        self._client = Arkiv(provider=provider, account=self._account)
+        # Client shares blockchain with server!
 ```
+
+**Copy these patterns from `07_agents.py` into your app!**
 
 #### Usage Instructions (Add to README)
 
@@ -1674,8 +1623,9 @@ Create a [application name] using Arkiv SDK with the following:
 2. Demo Scripts (CRITICAL - Choose based on app type):
    
    **If Multi-User Interactive App (chat, social, multiplayer game):**
-   - src/[app_name]/server.py - Runs shared node (one instance)
-   - src/[app_name]/demo.py - Client that connects to server (multiple instances)
+   - 📁 FIRST: Read src/arkiv_starter/07_agents.py as your template
+   - Copy ArkivChain pattern for server.py
+   - Copy Client pattern for demo.py
    - README must explain: "Start server first, then run demo in multiple terminals"
    
    **If Single-User App (personal storage, automation, single-player):**
@@ -1683,7 +1633,7 @@ Create a [application name] using Arkiv SDK with the following:
    - No server needed
 
 3. Implementation Requirements:
-   - For multi-user: Create ONE shared node (server), clients connect via HTTP
+   - For multi-user: Copy patterns from 07_agents.py (ArkivChain + Client classes)
    - For single-user: Use context manager pattern: with Arkiv() as client
    - Always call client.node.stop() or use context manager for cleanup
    - Add basic test that verifies core functionality
@@ -1743,5 +1693,5 @@ if __name__ == "__main__":
 
 ---
 
-*Last updated: 2025-11-25*
+*Last updated: 2025-06-02*
 *This file works with all AI coding tools that support the AGENTS.md standard.*

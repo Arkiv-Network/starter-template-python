@@ -1,12 +1,10 @@
 """
-Example 0: Hello Arkiv! - Your First 15 Lines
+Example 0: Hello World! - Your First Steps with Arkiv SDK for Python
 
 This is the simplest possible Arkiv program.
 It stores a message on-chain and reads it back.
 
-Perfect for: Complete beginners, first-time blockchain users
-
-Run this example: uv run python -m arkiv_starter.00_hello_arkiv
+Run this example: uv run python -m arkiv_starter.00_hello_world
 """
 
 from arkiv import Arkiv
@@ -18,7 +16,7 @@ print("👋 Hello Arkiv! Storing your first message on-chain...\n")
 
 # Store a message (returns the message's address and receipt)
 key, _ = client.arkiv.create_entity(
-    payload=b"Hello, Web3 world!",
+    payload=b"Hello world!",
     expires_in=3600  # Keep for 1 hour (3600 seconds)
 )
 

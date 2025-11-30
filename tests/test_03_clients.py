@@ -1,6 +1,4 @@
-"""
-Tests for Example 1: Client Initialization Patterns
-"""
+"""Tests for Example 3: Client Initialization Patterns."""
 
 import pytest
 from arkiv import Arkiv, NamedAccount
@@ -9,12 +7,16 @@ from typing import cast
 from web3.providers.base import BaseProvider
 
 
-def test_default_client():
-    """Test default client initialization."""
-    client = Arkiv()
+def test_default_client(arkiv_node):
+    """Test default client initialization with shared node."""
+    # Use provider connected to shared test node
+    provider = cast(BaseProvider, ProviderBuilder().node(arkiv_node).build())
+    account = NamedAccount.create("test-default-client")
+    arkiv_node.fund_account(account)
+    client = Arkiv(provider, account=account)
+    
     assert client is not None
     assert client.eth.default_account is not None
-    assert client.node is not None
     
     # Verify account is funded
     balance = client.eth.get_balance(client.eth.default_account)
@@ -113,42 +115,44 @@ def test_multiple_accounts_switch_to(arkiv_node):
     assert client.current_signer == original_signer
 
 
-def test_node_reference():
+def test_node_reference(arkiv_node):
     """Test accessing and using node reference."""
-    # Use default client which has node reference
-    client = Arkiv()
-    node = client.node
-    assert node is not None
+    # Use shared test node
+    provider = cast(BaseProvider, ProviderBuilder().node(arkiv_node).build())
+    account = NamedAccount.create("test-node-ref")
+    arkiv_node.fund_account(account)
+    client = Arkiv(provider, account=account)
     
-    # Verify node properties
-    assert node.http_url is not None
-    assert node.ws_url is not None
-    assert "http://" in node.http_url or "https://" in node.http_url
+    # Verify node properties via the shared node
+    assert arkiv_node.http_url is not None
+    assert arkiv_node.ws_url is not None
+    assert "http://" in arkiv_node.http_url or "https://" in arkiv_node.http_url
     
     # Test funding via node
     test_account = NamedAccount.create("test-node-funding")
-    node.fund_account(test_account)
+    arkiv_node.fund_account(test_account)
     
     balance = client.eth.get_balance(test_account.address)
     assert balance > 0
 
 
-def test_accounts_registry():
+def test_accounts_registry(arkiv_node):
     """Test accounts registry functionality."""
-    # Use default client
-    client = Arkiv()
+    # Use shared test node
+    provider = cast(BaseProvider, ProviderBuilder().node(arkiv_node).build())
+    account = NamedAccount.create("test-registry-main")
+    arkiv_node.fund_account(account)
+    client = Arkiv(provider, account=account)
     
-    # Default client should have default account in registry
+    # Client should have the account in registry
     assert len(client.accounts) > 0
     
     # Add multiple accounts
     account1 = NamedAccount.create("test-account-1")
     account2 = NamedAccount.create("test-account-2")
     
-    node = client.node
-    assert node is not None
-    node.fund_account(account1)
-    node.fund_account(account2)
+    arkiv_node.fund_account(account1)
+    arkiv_node.fund_account(account2)
     
     client.accounts["account-1"] = account1
     client.accounts["account-2"] = account2

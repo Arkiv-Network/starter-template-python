@@ -1,10 +1,12 @@
-"""Tests for querying functionality (Example 2)."""
+"""Tests for querying functionality (Example 5)."""
 
+from typing import cast
 from arkiv import Arkiv
+from arkiv.types import Attributes
 
 
 class TestQuerying:
-    """Test query operations from example 02."""
+    """Test query operations from example 05."""
 
     def test_query_by_owner(self, arkiv_client: Arkiv):
         """Test querying entities by owner."""
@@ -13,7 +15,7 @@ class TestQuerying:
             arkiv_client.arkiv.create_entity(
                 payload=f"Query test {i}".encode(),
                 content_type="text/plain",
-                attributes={"test": "query"},
+                attributes=cast(Attributes, {"test": "query"}),
                 expires_in=arkiv_client.arkiv.to_seconds(hours=1),
             )
 
@@ -29,14 +31,14 @@ class TestQuerying:
         arkiv_client.arkiv.create_entity(
             payload=b"Text entity",
             content_type="text/plain",
-            attributes={"type": "text"},
+            attributes=cast(Attributes, {"type": "text"}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
         arkiv_client.arkiv.create_entity(
             payload=b'{"key": "value"}',
             content_type="application/json",
-            attributes={"type": "json"},
+            attributes=cast(Attributes, {"type": "json"}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
@@ -58,14 +60,14 @@ class TestQuerying:
         arkiv_client.arkiv.create_entity(
             payload=b"Active entity",
             content_type="text/plain",
-            attributes={"status": "active", "priority": 1},
+            attributes=cast(Attributes, {"status": "active", "priority": 1}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
         arkiv_client.arkiv.create_entity(
             payload=b"Inactive entity",
             content_type="text/plain",
-            attributes={"status": "inactive", "priority": 2},
+            attributes=cast(Attributes, {"status": "inactive", "priority": 2}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
@@ -86,7 +88,7 @@ class TestQuerying:
             arkiv_client.arkiv.create_entity(
                 payload=f"Pagination test {i}".encode(),
                 content_type="text/plain",
-                attributes={"test": "pagination"},
+                attributes=cast(Attributes, {"test": "pagination"}),
                 expires_in=arkiv_client.arkiv.to_seconds(hours=1),
             )
 
@@ -103,14 +105,14 @@ class TestQuerying:
         arkiv_client.arkiv.create_entity(
             payload=b"Match all conditions",
             content_type="text/plain",
-            attributes={"category": "test", "status": "active", "version": 1},
+            attributes=cast(Attributes, {"category": "test", "status": "active", "version": 1}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
         arkiv_client.arkiv.create_entity(
             payload=b"Match some conditions",
             content_type="text/plain",
-            attributes={"category": "test", "status": "inactive", "version": 1},
+            attributes=cast(Attributes, {"category": "test", "status": "inactive", "version": 1}),
             expires_in=arkiv_client.arkiv.to_seconds(hours=1),
         )
 
@@ -121,5 +123,6 @@ class TestQuerying:
 
         assert len(results) >= 1, "Should find entities matching all conditions"
         for entity in results:
+            assert entity.attributes is not None
             assert entity.attributes.get("category") == "test"
             assert entity.attributes.get("status") == "active"

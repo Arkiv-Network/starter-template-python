@@ -187,7 +187,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "arkiv-sdk", extras = ["dev"], specifier = ">=1.0.0a9" }]
+requires-dist = [{ name = "arkiv-sdk", extras = ["dev"], specifier = ">=1.0.0a10" }]
 
 [package.metadata.requires-dev]
 dev = [
