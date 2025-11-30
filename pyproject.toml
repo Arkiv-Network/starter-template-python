@@ -5,7 +5,7 @@ description = "Starter template for Arkiv Python SDK"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "arkiv-sdk[dev]>=1.0.0a9",
+    "arkiv-sdk[dev]>=1.0.0a10",
 ]
 
 [build-system]

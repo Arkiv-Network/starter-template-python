@@ -11,11 +11,28 @@ This example demonstrates:
 Run this example: uv run python -m arkiv_starter.01_clients
 """
 
-from typing import cast
+import socket
+from typing import Optional, cast
 from web3.providers.base import BaseProvider
 from arkiv import Arkiv, NamedAccount
 from arkiv.provider import ProviderBuilder
+from urllib.parse import urlparse
 
+EXTERNAL_RPC_URL: str = "https://mendoza.hoodi.arkiv.network/rpc"
+
+def is_rpc_reachable(rpc_url: str, timeout: float = 2.0) -> bool:
+    """Check if RPC endpoint is reachable using a simple socket connection."""
+    try:
+        parsed = urlparse(rpc_url)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or (443 if parsed.scheme == "https" else 8545)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
 
 print("=" * 70)
 print("PATTERN 1: Default Constructor (Simplest)")
@@ -46,12 +63,18 @@ print("PATTERN 2: Custom Provider (Specific RPC Endpoint)")
 print("=" * 70)
 print("\n🚀 Creating client with custom provider...")
 print("   - Connect to specific RPC URL")
-print("   - Useful for remote nodes or specific configurations\n")
+print("   - Useful for remote nodes or specific configurations")
+print("   - Fallback to local node if external node not reachable\n")
 
-# Use the node from the default client
 local_node = client.node
-assert local_node is not None, "Default client should have started a node"
-rpc_url = local_node.http_url
+if is_rpc_reachable(EXTERNAL_RPC_URL):
+    print(f"🌐 External RPC URL is reachable: {EXTERNAL_RPC_URL}\n")
+    rpc_url = EXTERNAL_RPC_URL
+else:
+    print(f"⚠️  External RPC URL is NOT reachable: {EXTERNAL_RPC_URL}")
+    assert local_node is not None, "Default client should have started a node"
+    rpc_url = local_node.http_url
+    print(f"   Falling back to local node RPC URL: {rpc_url}\n")
 
 provider = cast(BaseProvider, ProviderBuilder().custom(url=rpc_url).build())
 # Note: When only providing provider, client doesn't auto-create account
@@ -62,7 +85,6 @@ print(f"✅ Client with custom provider created!")
 print(f"   Provider: {provider}")
 print(f"   Note: No default account - you must provide one for transactions\n")
 
-
 print("=" * 70)
 print("PATTERN 3: Custom Account (Specific Private Key)")
 print("=" * 70)
@@ -71,22 +93,26 @@ print("   - Full control over provider and account")
 print("   - Useful for production with specific keys\n")
 
 account = NamedAccount.create("custom-account")
-local_node.fund_account(account)  # Fund the new account
+if local_node:
+    local_node.fund_account(account)  # Fund the new account
 
 custom_account_client = Arkiv(provider, account=account)
+custom_account_balance = custom_account_client.eth.get_balance(account.address)
 
 print(f"✅ Client with custom account created!")
 print(f"   Account: {account.address}")
 print(f"   Account name: {account.name}")
-print(f"   Balance: {custom_account_client.eth.get_balance(account.address)/10**18} ETH\n")
+print(f"   Balance: {custom_account_balance/10**18} ETH\n")
 
 # Quick test
-entity_key2, receipt2 = custom_account_client.arkiv.create_entity(
-    payload=b"Test from custom account",
-    content_type="text/plain",
-    expires_in=3600
-)
-print(f"✅ Test entity created: {entity_key2}\n")
+if custom_account_balance > 0:
+    print("💸 Creating test entity with custom account...")
+    entity_key2, receipt2 = custom_account_client.arkiv.create_entity(
+        payload=b"Test from custom account",
+        content_type="text/plain",
+        expires_in=3600
+    )
+    print(f"✅ Test entity created: {entity_key2}\n")
 
 
 print("=" * 70)
