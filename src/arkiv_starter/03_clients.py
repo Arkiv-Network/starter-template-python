@@ -18,7 +18,7 @@ from arkiv import Arkiv, NamedAccount
 from arkiv.provider import ProviderBuilder
 from urllib.parse import urlparse
 
-EXTERNAL_RPC_URL: str = "https://mendoza.hoodi.arkiv.network/rpc"
+EXTERNAL_RPC_URL: str = "https://rosario.hoodi.arkiv.network/rpc"
 
 def is_rpc_reachable(rpc_url: str, timeout: float = 2.0) -> bool:
     """Check if RPC endpoint is reachable using a simple socket connection."""

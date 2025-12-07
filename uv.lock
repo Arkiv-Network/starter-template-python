@@ -154,16 +154,16 @@ wheels = [
 
 [[package]]
 name = "arkiv-sdk"
-version = "1.0.0a10"
+version = "1.0.0b1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "brotli" },
     { name = "web3" },
     { name = "zstd" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/37/8b2d66aaf53f1e79eea172b5fbfc7015d79c9218c27e960bae4d21d61def/arkiv_sdk-1.0.0a10.tar.gz", hash = "sha256:31194c3c3c3e0cda63dd27b16ef02955cf6c87598b0be92bb56a641a95e21ac7", size = 111296 }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/26/2efccc824cce83ae8fa70e45776efcb823599d63d557050dd450356289e1/arkiv_sdk-1.0.0b1.tar.gz", hash = "sha256:c49a0e91fb387d7324ca23324f9a39a107514a65ead2c73e21be2dbff705bcfd", size = 129444 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/b4/1aaa177908d3dff90e4f8d341d17cb8d00aca71192660390970b12af4790/arkiv_sdk-1.0.0a10-py3-none-any.whl", hash = "sha256:d2b052a2789f5233f1a894e57d6e52dd0a55d6529f754e7572a677b173f3f791", size = 58665 },
+    { url = "https://files.pythonhosted.org/packages/d7/24/f55ac2ea044c92eb290feab657fed7a216cd3a75b5ef031073b2d23e412f/arkiv_sdk-1.0.0b1-py3-none-any.whl", hash = "sha256:e6c0384b8311753f9a89d9be0c1c40acba9390c19f00e72036079f7175cd5d8f", size = 68421 },
 ]
 
 [package.optional-dependencies]
@@ -187,7 +187,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "arkiv-sdk", extras = ["dev"], specifier = ">=1.0.0a10" }]
+requires-dist = [{ name = "arkiv-sdk", extras = ["dev"], specifier = ">=1.0.0b1" }]
 
 [package.metadata.requires-dev]
 dev = [
