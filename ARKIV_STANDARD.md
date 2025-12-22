@@ -175,6 +175,17 @@ arkiv:[<chainId>:]?[0x<entity-key>]?($|#)<attribute-name>
 - **Value format**: Positive integer (e.g., `1`, `2`). Prefer the attribute name `typeVersion`; `typeV` is supported as a legacy shorthand but less explicit.
 - **Notes**: Increment `typeVersion` when making non-backward-compatible changes to the payload schema so clients and indexers can detect and handle different versions.
 
+**Compatibility expectations:**
+
+- Clients should ignore unknown attributes (forward compatibility)
+- Clients should soft-fail on unknown `typeVersion` (show fallback UI, log warning, don't crash)
+- Clients should handle missing `typeVersion` gracefully (assume version 1 for legacy entities)
+- Indexers may support multiple versions concurrently
+- Indexers should expose `typeVersion` in query results
+- Indexers should not filter out entities based on unknown `typeVersion`
+
+**Recommendation:** Always set `typeVersion: 1` on initial entity creation to enable future migrations without breaking existing clients.
+
 #### Arrays (attribute-level)
 
 Because Arkiv attributes are limited to strings or positive integers, we recommend a simple, compact convention for array-valued attributes encoded as strings.
