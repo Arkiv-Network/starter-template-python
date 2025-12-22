@@ -313,6 +313,80 @@ uv run python -m arkiv_starter.08_web3_integration
 
 ---
 
+## Explorer CLI
+
+The starter template includes a simple CLI tool for inspecting Arkiv entities from the command line.
+
+### Basic Usage
+
+Display an entity by its key:
+
+```bash
+uv run -m explorer entity 0x57bff12d40cf55675f671585ca30d08f26c08d90b86564cfc02d3cd81dc3e3e1
+```
+
+**Output format:**
+```json
+{
+  "$key": "0x57bff12d40cf55675f671585ca30d08f26c08d90b86564cfc02d3cd81dc3e3e1",
+  "$owner": "0x1234...",
+  "$contentType": "application/json",
+  "$createdAtBlock": 123,
+  "$lastModifiedAtBlock": 123,
+  "$expiresAtBlock": 50523,
+  "attributes": {
+    "type": "message",
+    "channel": "general"
+  },
+  "payload": {
+    "text": "Hello, world!"
+  }
+}
+```
+
+### Connection Options
+
+By default, the explorer connects to the public Arkiv network. To connect to a different node, set the `ARKIV_RPC_URL` environment variable:
+
+```bash
+# Connect to a local node
+ARKIV_RPC_URL=http://127.0.0.1:8545 uv run -m explorer entity 0x...
+
+# Connect to a custom endpoint
+ARKIV_RPC_URL=https://your-node.example.com/rpc uv run -m explorer entity 0x...
+```
+
+### Logging
+
+Control the log level to see SDK debug information:
+
+```bash
+# Show INFO level logs
+uv run -m explorer --log-level INFO entity 0x...
+
+# Show DEBUG level logs (verbose)
+uv run -m explorer --log-level DEBUG entity 0x...
+```
+
+### Use Cases
+
+- **Debugging**: Quickly inspect entities created by your application
+- **Testing**: Verify entity contents without writing code
+- **Monitoring**: Check entity metadata (expiration, owner, attributes)
+- **Learning**: Explore the structure of on-chain data
+
+**Tip:** Combine with the examples! Run an example to create entities, then use the explorer to inspect them:
+
+```bash
+# Create some entities
+uv run python -m arkiv_starter.04_entity_crud
+
+# Inspect an entity from the output
+uv run -m explorer entity 0x<entity-key-from-output>
+```
+
+---
+
 ## Development Guide
 
 ### Project Structure
