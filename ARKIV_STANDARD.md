@@ -162,6 +162,12 @@ arkiv:[<chainId>:]?[0x<entity-key>]?($|#)<attribute-name>
 
 - **Security & implementation notes**:
   - Enforce validation and ACLs when resolving remote references.
+  - **Prefer server-side resolution:** Arkiv references (especially `arkiv:#payload` and `arkiv:0x...#payload`) should be resolved server-side or via indexer APIs, not directly by clients. Server-side resolution enables:
+    - Content-type validation and MIME type checks (`$contentType` validation)
+    - Size limit enforcement
+    - Security scanning for malicious content
+    - CDN caching for images and assets
+    - Consistent error handling and fallbacks
   - Avoid returning `$payload` raw to arbitrary clients; prefer server-side fetch, MIME checks, scanning, and CDN caching.
   - Maintain backward compatibility with simple forms like `#payload` and `arkiv:0x...`.
 
