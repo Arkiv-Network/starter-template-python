@@ -345,6 +345,32 @@ Applications that need additional use case specific attributes should create a s
 }
 ```
 
+## Entity Mutation Semantics
+
+This section clarifies how entity updates should be interpreted across Arkiv implementations.
+
+### Update semantics
+
+Updating an existing entity is a **semantic mutation of the same entity identity**, not the creation of a new entity. Applications should reuse the same entity key when modifying mutable state (for example, profiles, preferences, or notification state).
+
+When an entity is updated, the **current entity state is replaced by the new state** provided in the update. Omitted attributes are not preserved implicitly.
+
+**Implication:** Applications should treat updates as full replacements of the entity’s attribute set and avoid assuming partial or merge-style updates.
+
+### Attribute removal
+
+Arkiv does not define a special deletion marker for individual attributes.
+
+To remove an attribute from an entity, it should be omitted from the updated attribute set. Setting attributes to empty strings is discouraged, as empty values are semantically distinct from absence and may complicate indexing and client logic.
+
+Historical transactions may still contain removed attributes; absence applies only to the current entity state.
+
+### System timestamps
+
+The system attribute `$lastUpdatedAt` reflects the most recent entity mutation of any kind. It should not be interpreted as a user-meaningful change indicator.
+
+Applications that require semantic timestamps (for example, “last edited” or “last read”) should model them explicitly as custom attributes.
+
 ---
 
 ## Change Log
