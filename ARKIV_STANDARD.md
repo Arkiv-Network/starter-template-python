@@ -196,6 +196,14 @@ Because Arkiv attributes are limited to strings or positive integers, we recomme
 - **Empty array**: use `[]`.
 - **Escaping**: if elements may contain commas or brackets, store the array in the `payload` as JSON instead (or use a different attribute convention).
 
+**When to use arrays-as-strings vs JSON payload:**
+
+- ✅ Use arrays-as-strings for: language codes, tags, slugs, simple tokens
+- ❌ Do not use arrays-as-strings for: user-authored content, ordered lists, nested structures, data requiring extensibility
+
+For anything beyond simple tokens, prefer storing JSON in the entity `payload` and referencing it via a `Ref` attribute.
+
+
 **Parsing guidance**:
 - Validate that the value starts with `[` and ends with `]`.
 - Remove the brackets, split on `,`, trim each element, and reject empty elements unless explicitly allowed.
