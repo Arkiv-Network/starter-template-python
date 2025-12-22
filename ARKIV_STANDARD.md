@@ -23,7 +23,12 @@ This document is the canonical guide for cross-project Arkiv usage and should be
     - [Location Encoding](#location-encoding-lat--long)
 - [Base Entity Types](#base-entity-types)
   - [Why base entity types](#why-base-entity-types)
-  - [Application extension](#application-extension)
+  - [Anti-patterns](#anti-patterns)
+  - [Application extensions](#application-extensions)
+- [Entity Mutation Semantics](#entity-mutation-semantics)
+  - [Update semantics](#update-semantics)
+  - [Attribute removal](#attribute-removal)
+  - [System timestamps](#system-timestamps)
 - [Change Log](#change-log)
 
 ---
@@ -162,6 +167,12 @@ arkiv:[<chainId>:]?[0x<entity-key>]?($|#)<attribute-name>
 
 - **Security & implementation notes**:
   - Enforce validation and ACLs when resolving remote references.
+  - **Prefer server-side resolution:** Arkiv references (especially `arkiv:#payload` and `arkiv:0x...#payload`) should be resolved server-side or via indexer APIs, not directly by clients. Server-side resolution enables:
+    - Content-type validation and MIME type checks (`$contentType` validation)
+    - Size limit enforcement
+    - Security scanning for malicious content
+    - CDN caching for images and assets
+    - Consistent error handling and fallbacks
   - Avoid returning `$payload` raw to arbitrary clients; prefer server-side fetch, MIME checks, scanning, and CDN caching.
   - Maintain backward compatibility with simple forms like `#payload` and `arkiv:0x...`.
 
@@ -175,6 +186,17 @@ arkiv:[<chainId>:]?[0x<entity-key>]?($|#)<attribute-name>
 - **Value format**: Positive integer (e.g., `1`, `2`). Prefer the attribute name `typeVersion`; `typeV` is supported as a legacy shorthand but less explicit.
 - **Notes**: Increment `typeVersion` when making non-backward-compatible changes to the payload schema so clients and indexers can detect and handle different versions.
 
+**Compatibility expectations:**
+
+- Clients should ignore unknown attributes (forward compatibility)
+- Clients should soft-fail on unknown `typeVersion` (show fallback UI, log warning, don't crash)
+- Clients should handle missing `typeVersion` gracefully (assume version 1 for legacy entities)
+- Indexers may support multiple versions concurrently
+- Indexers should expose `typeVersion` in query results
+- Indexers should not filter out entities based on unknown `typeVersion`
+
+**Recommendation:** Always set `typeVersion: 1` on initial entity creation to enable future migrations without breaking existing clients.
+
 #### Arrays (attribute-level)
 
 Because Arkiv attributes are limited to strings or positive integers, we recommend a simple, compact convention for array-valued attributes encoded as strings.
@@ -184,6 +206,13 @@ Because Arkiv attributes are limited to strings or positive integers, we recomme
 - **Whitespace**: parsers **should** trim whitespace around elements; canonical storage should avoid spaces: use `[en,es,fr]` rather than `[ en, es, fr ]`.
 - **Empty array**: use `[]`.
 - **Escaping**: if elements may contain commas or brackets, store the array in the `payload` as JSON instead (or use a different attribute convention).
+
+**When to use arrays-as-strings vs JSON payload:**
+
+- Use arrays-as-strings for: language codes, tags, slugs, simple tokens
+- Do not use arrays-as-strings for: user-authored content, ordered lists, nested structures, data requiring extensibility
+
+For anything beyond simple tokens, prefer storing JSON in the entity `payload` and referencing it via a `Ref` attribute.
 
 **Parsing guidance**:
 - Validate that the value starts with `[` and ends with `]`.
@@ -245,6 +274,30 @@ Base entity types serve as small, stable, and **application-neutral** schemas th
 - **Versioning & migration** — App extensions can have independent `typeVersion`, enabling targeted migrations and compatibility handling.
 - **Privacy & compliance** — Sensitive or app-specific user data remains separate and easier to delete/expire as required.
 
+### Anti-patterns
+
+The following patterns are common mistakes that cause bugs in production applications:
+
+**Do not create new entities for mutable state**
+
+Do not model mutable user state by creating new entities per edit. Reuse entity keys for mutable entities to preserve identity and references. Use `updateEntity()` (SDK v0.4.4+) with stable `entity_key` values for entities that represent mutable application state (profiles, preferences, notifications). Reserve the "create new entity per change" pattern only for true versioning scenarios where each version needs independent identity (e.g., document revisions, immutable audit logs).
+
+**Do not store UI state on base entities**
+
+Do not store UI state, per-user flags, or ephemeral interaction data on base entities. Base entities should remain app-neutral and reusable. Store UI state in app-specific extension entities that reference the base entity via a `Ref` attribute.
+
+**Do not overload array-encoded attributes**
+
+Arrays encoded as strings (e.g., `"[en,de]"`) are intended only for simple, indexable tokens (language codes, tags, slugs). Do not encode user-authored or ordered data this way. For richer or nested arrays, store JSON in the entity `payload` and reference it from a `Ref` attribute.
+
+**Do not assume partial updates**
+
+`updateEntity()` should be treated as a full replacement of the entity's **attribute set** (omitted attributes are not preserved). Applications must fetch current entity state, merge desired changes, and provide complete attribute set to `updateEntity()` to avoid accidental deletions.
+
+**Do not resolve Arkiv references client-side**
+
+Arkiv references (especially `arkiv:#payload` and `arkiv:0x...#payload`) should be resolved server-side or via indexer APIs, not directly by clients. Server-side resolution enables content-type validation, size limit enforcement, security scanning, and CDN caching.
+
 
 ### Base Entity Type: Profile
 
@@ -257,7 +310,7 @@ Base entity types serve as small, stable, and **application-neutral** schemas th
   "profileImageUrl": "https://cdn.example.com/alice.jpg",
   "profileImageRef": "arkiv:#payload",
   "timezone": "Europe/Berlin",
-  "languages": "[en,de]",
+  "languages": "[en,de]"
 }
 ```
 
@@ -292,9 +345,35 @@ Applications that need additional use case specific attributes should create a s
   "typeVersion": 1,
   "userProfileRef": "arkiv:0x123...",
   "mentorSkillIds": "[skill1,skill2]",
-  "hourlyRate": 2000000000000,
+  "hourlyRate": 2000000000000
 }
 ```
+
+## Entity Mutation Semantics
+
+This section clarifies how entity updates should be interpreted across Arkiv implementations.
+
+### Update semantics
+
+Updating an existing entity is a **semantic mutation of the same entity identity**, not the creation of a new entity. Applications should reuse the same entity key when modifying mutable state (for example, profiles, preferences, or notification state).
+
+When an entity is updated, the **current entity state** (both attributes and payload) is replaced by the new state provided in the update. Omitted attributes are not preserved. If you want to preserve the existing payload, re-send it in the update call.
+
+**Implication:** Applications should treat updates as full replacements of the entity’s attribute set and avoid assuming partial or merge-style updates.
+
+### Attribute removal
+
+Arkiv does not define a special deletion marker for individual attributes.
+
+To remove an attribute from an entity, it should be omitted from the updated attribute set. Setting attributes to empty strings is discouraged, as empty values are semantically distinct from absence and may complicate indexing and client logic.
+
+Historical transactions may still contain removed attributes; absence applies only to the current entity state.
+
+### System timestamps
+
+The system attribute `$lastUpdatedAt` reflects the most recent entity mutation of any kind. It should not be interpreted as a user-meaningful change indicator.
+
+Applications that require semantic timestamps (for example, “last edited” or “last read”) should model them explicitly as custom attributes.
 
 ---
 
