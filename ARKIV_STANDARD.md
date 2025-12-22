@@ -245,6 +245,30 @@ Base entity types serve as small, stable, and **application-neutral** schemas th
 - **Versioning & migration** — App extensions can have independent `typeVersion`, enabling targeted migrations and compatibility handling.
 - **Privacy & compliance** — Sensitive or app-specific user data remains separate and easier to delete/expire as required.
 
+### Anti-patterns
+
+The following patterns are common mistakes that cause bugs in production applications:
+
+**Do not create new entities for mutable state**
+
+Do not model mutable user state by creating new entities per edit. Reuse entity keys for mutable entities to preserve identity and references. Use `updateEntity()` (SDK v0.4.4+) with stable `entity_key` values for entities that represent mutable application state (profiles, preferences, notifications). Reserve the "create new entity per change" pattern only for true versioning scenarios where each version needs independent identity (e.g., document revisions, immutable audit logs).
+
+**Do not store UI state on base entities**
+
+Do not store UI state, per-user flags, or ephemeral interaction data on base entities. Base entities should remain app-neutral and reusable. Store UI state in app-specific extension entities that reference the base entity via a `Ref` attribute.
+
+**Do not overload array-encoded attributes**
+
+Arrays encoded as strings (e.g., `"[en,de]"`) are intended only for simple, indexable tokens (language codes, tags, slugs). Do not encode user-authored or ordered data this way. For richer or nested arrays, store JSON in the entity `payload` and reference it from a `Ref` attribute.
+
+**Do not assume partial updates**
+
+`updateEntity()` should be treated as a full replacement of the entity's **attribute set** (omitted attributes are not preserved). Applications must fetch current entity state, merge desired changes, and provide complete attribute set to `updateEntity()` to avoid accidental deletions.
+
+**Do not resolve Arkiv references client-side**
+
+Arkiv references (especially `arkiv:#payload` and `arkiv:0x...#payload`) should be resolved server-side or via indexer APIs, not directly by clients. Server-side resolution enables content-type validation, size limit enforcement, security scanning, and CDN caching.
+
 
 ### Base Entity Type: Profile
 
