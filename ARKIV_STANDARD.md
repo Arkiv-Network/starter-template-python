@@ -23,7 +23,12 @@ This document is the canonical guide for cross-project Arkiv usage and should be
     - [Location Encoding](#location-encoding-lat--long)
 - [Base Entity Types](#base-entity-types)
   - [Why base entity types](#why-base-entity-types)
-  - [Application extension](#application-extension)
+  - [Anti-patterns](#anti-patterns)
+  - [Application extensions](#application-extensions)
+- [Entity Mutation Semantics](#entity-mutation-semantics)
+  - [Update semantics](#update-semantics)
+  - [Attribute removal](#attribute-removal)
+  - [System timestamps](#system-timestamps)
 - [Change Log](#change-log)
 
 ---
@@ -204,11 +209,10 @@ Because Arkiv attributes are limited to strings or positive integers, we recomme
 
 **When to use arrays-as-strings vs JSON payload:**
 
-- ✅ Use arrays-as-strings for: language codes, tags, slugs, simple tokens
-- ❌ Do not use arrays-as-strings for: user-authored content, ordered lists, nested structures, data requiring extensibility
+- Use arrays-as-strings for: language codes, tags, slugs, simple tokens
+- Do not use arrays-as-strings for: user-authored content, ordered lists, nested structures, data requiring extensibility
 
 For anything beyond simple tokens, prefer storing JSON in the entity `payload` and referencing it via a `Ref` attribute.
-
 
 **Parsing guidance**:
 - Validate that the value starts with `[` and ends with `]`.
@@ -306,7 +310,7 @@ Arkiv references (especially `arkiv:#payload` and `arkiv:0x...#payload`) should 
   "profileImageUrl": "https://cdn.example.com/alice.jpg",
   "profileImageRef": "arkiv:#payload",
   "timezone": "Europe/Berlin",
-  "languages": "[en,de]",
+  "languages": "[en,de]"
 }
 ```
 
@@ -341,7 +345,7 @@ Applications that need additional use case specific attributes should create a s
   "typeVersion": 1,
   "userProfileRef": "arkiv:0x123...",
   "mentorSkillIds": "[skill1,skill2]",
-  "hourlyRate": 2000000000000,
+  "hourlyRate": 2000000000000
 }
 ```
 
@@ -353,7 +357,7 @@ This section clarifies how entity updates should be interpreted across Arkiv imp
 
 Updating an existing entity is a **semantic mutation of the same entity identity**, not the creation of a new entity. Applications should reuse the same entity key when modifying mutable state (for example, profiles, preferences, or notification state).
 
-When an entity is updated, the **current entity state is replaced by the new state** provided in the update. Omitted attributes are not preserved implicitly.
+When an entity is updated, the **current entity state** (both attributes and payload) is replaced by the new state provided in the update. Omitted attributes are not preserved. If you want to preserve the existing payload, re-send it in the update call.
 
 **Implication:** Applications should treat updates as full replacements of the entity’s attribute set and avoid assuming partial or merge-style updates.
 
