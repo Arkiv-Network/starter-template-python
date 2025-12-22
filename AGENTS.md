@@ -93,6 +93,88 @@ When user says "chat", "social", "multiplayer", "collaborative" → **STOP** →
 
 ---
 
+## 📋 Arkiv Standards & Conventions
+
+**CRITICAL: When creating entities with custom attributes, follow the Arkiv Standard (ARKIV_STANDARD.md).**
+
+### Required reading before creating entities:
+- **Full spec**: `ARKIV_STANDARD.md` — canonical naming, attribute formats, base entity types
+- **Quick rules** (memorize these):
+  - Attribute names: CamelCase (e.g., `displayName`, `profileImageUrl`)
+  - Type values: PascalCase (e.g., `UserProfile`, `MentorProfile`)
+  - Timestamps: `*At` postfix, ISO 8601 with timezone (e.g., `createdAt: "2025-12-18T15:00:00Z"`)
+  - URLs: `*Url` postfix, must start with `http://` or `https://`
+  - Arkiv refs: `*Ref` postfix, use syntax `arkiv:[chain:]0x...#attr` or `#payload`
+  - Arrays: Bracketed strings (e.g., `languages: "[en,de]"`)
+  - Locations: `*Lat`/`*Long` as microdegrees (integers), optional `*Decimal` strings
+  - Versions: `typeVersion` (integer), bump on breaking changes
+
+### Common validation patterns:
+```python
+# Validate attribute names (CamelCase, start with letter)
+import re
+ATTR_NAME_PATTERN = r'^[A-Za-z][A-Za-z0-9_-]*$'
+
+# Validate Arkiv references
+ARKIV_REF_PATTERN = r'^arkiv:(?:(?:\d+|0x[0-9a-fA-F]+):)?(?:0x[0-9a-fA-F]+)?([$#])([A-Za-z][A-Za-z0-9_-]*)$'
+
+# Validate URLs
+def is_valid_url(url: str) -> bool:
+    return url.startswith('http://') or url.startswith('https://')
+
+# Validate ISO timestamps
+from datetime import datetime
+def is_valid_timestamp(ts: str) -> bool:
+    try:
+        dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+        return dt.tzinfo is not None
+    except ValueError:
+        return False
+```
+
+### Base entity types (prefer over inventing new schemas):
+- **`UserProfile`** — See ARKIV_STANDARD.md for full schema
+  - Required: `type`, `typeVersion`, `displayName`, `timezone`
+  - Optional: `username`, `profileImageUrl`, `profileImageRef`, `languages`
+
+### Application extensions:
+- DON'T add app-specific attributes to base types
+- DO create separate entities that reference base types via `*Ref` attributes
+- Example: `MentorProfile` has `userProfileRef: "arkiv:0x123..."` linking to `UserProfile`
+
+**Pro tip for AI agents:**
+When user asks to "create a profile entity" or similar, first check ARKIV_STANDARD.md to see if a base type exists. Use it as-is or extend via reference pattern.
+
+**Example: Creating a standard-compliant UserProfile**
+```python
+import json
+from datetime import datetime, timezone
+
+profile_data = {
+    "type": "UserProfile",
+    "typeVersion": 1,
+    "displayName": "Alice Example",
+    "username": "alice",
+    "profileImageUrl": "https://cdn.example.com/alice.jpg",
+    "timezone": "Europe/Berlin",
+    "languages": "[en,de]",
+    "createdAt": datetime.now(timezone.utc).isoformat(),
+}
+
+entity_key, receipt = client.arkiv.create_entity(
+    payload=json.dumps(profile_data).encode(),
+    content_type="application/json",
+    expires_in=client.arkiv.to_seconds(days=365),
+    attributes={
+        "type": "UserProfile",
+        "displayName": "Alice Example",
+        "username": "alice",
+    }
+)
+```
+
+---
+
 ## 🏗️ Critical: Understanding Arkiv Architecture
 
 ### Client/Node Architecture
